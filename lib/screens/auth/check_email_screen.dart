@@ -22,7 +22,6 @@ class CheckEmailScreen extends StatelessWidget {
               children: [
                 const SizedBox(height: 40),
 
-                // Icon
                 Container(
                   height: 80,
                   width: 80,
@@ -71,18 +70,6 @@ class CheckEmailScreen extends StatelessWidget {
                           (route) => false,
                     );
                   },
-                ),
-
-                const SizedBox(height: 16),
-
-                TextButton(
-                  onPressed: () {
-                    // Resend logic later
-                  },
-                  child: const Text(
-                    'Resend Email',
-                    style: TextStyle(color: Color(0xFF7A7A7A)),
-                  ),
                 ),
 
                 const SizedBox(height: 30),

@@ -2,11 +2,53 @@ import 'package:flutter/material.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 import '../main/main_screen.dart';
+import 'package:mindease/services/auth_service.dart';
 
-
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
-//onTap
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  bool isLoading = false;
+  bool passwordVisible = false;
+  bool confirmPasswordVisible = false;
+
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _login() async {
+    setState(() => isLoading = true);
+
+    try {
+      await AuthService().login(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainScreen()),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,7 +67,6 @@ class LoginScreen extends StatelessWidget {
               children: [
                 const SizedBox(height: 10),
 
-                // Back button
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
@@ -36,7 +77,6 @@ class LoginScreen extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                // Logo
                 Container(
                   height: 72,
                   width: 72,
@@ -63,24 +103,36 @@ class LoginScreen extends StatelessWidget {
                 const SizedBox(height: 30),
 
                 _inputField(
-                  label: 'Email or Phone',
+                  label: 'Email',
                   hint: 'Enter your email',
                   icon: Icons.email_outlined,
+                  controller: emailController,
                 ),
 
                 _inputField(
                   label: 'Password',
-                  hint: 'Enter your password',
+                  hint: 'Create a strong password',
                   icon: Icons.lock_outline,
-                  obscure: true,
+                  controller: passwordController,
+                  obscure: !passwordVisible,
+                  suffixWidget: IconButton(
+                    icon: Icon(
+                      passwordVisible ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        passwordVisible = !passwordVisible;
+                      });
+                    },
+                  ),
                 ),
+
 
                 const SizedBox(height: 10),
 
-                // Biometric Lock (UI only)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.7),
                     borderRadius: BorderRadius.circular(16),
@@ -91,56 +143,20 @@ class LoginScreen extends StatelessWidget {
                           color: Color(0xFF9C27B0)),
                       const SizedBox(width: 10),
                       const Expanded(child: Text('Biometric Lock')),
-                      Switch(
-                        value: false,
-                        onChanged: (_) {},
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 14),
-
-                // Privacy note
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF8E1),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.lock, color: Color(0xFFFFB300)),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Your data stays private on your device.',
-                          style: TextStyle(fontSize: 13),
-                        ),
-                      ),
+                      Switch(value: false, onChanged: (_) {}),
                     ],
                   ),
                 ),
 
                 const SizedBox(height: 24),
 
-                // Sign In
                 _primaryButton(
-                  text: 'Sign In',
-                  onTap: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const MainScreen(),
-                      ),
-                    );
-                  },
-
+                  text: isLoading ? 'Signing In...' : 'Sign In',
+                  onTap: isLoading ? null : _login,
                 ),
 
                 const SizedBox(height: 16),
 
-                // Create Account
                 GestureDetector(
                   onTap: () {
                     Navigator.pushReplacement(
@@ -162,7 +178,6 @@ class LoginScreen extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                // Forgot password
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -194,8 +209,11 @@ class LoginScreen extends StatelessWidget {
     required String label,
     required String hint,
     required IconData icon,
+    required TextEditingController controller,
     bool obscure = false,
+    Widget? suffixWidget,
   }) {
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: Column(
@@ -206,10 +224,12 @@ class LoginScreen extends StatelessWidget {
               const TextStyle(fontSize: 14, color: Color(0xFF7A7A7A))),
           const SizedBox(height: 6),
           TextField(
+            controller: controller,
             obscureText: obscure,
             decoration: InputDecoration(
               hintText: hint,
               prefixIcon: Icon(icon),
+              suffixIcon: suffixWidget,
               filled: true,
               fillColor: Colors.white,
               border: OutlineInputBorder(
@@ -225,7 +245,7 @@ class LoginScreen extends StatelessWidget {
 
   static Widget _primaryButton({
     required String text,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
   }) {
     return Container(
       width: double.infinity,

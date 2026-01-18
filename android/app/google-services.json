@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "430779537626",
+    "project_id": "arealens-480e6",
+    "storage_bucket": "arealens-480e6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:430779537626:android:015ba7f3cecc0416a62de3",
+        "android_client_info": {
+          "package_name": "com.example.arealens"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGonss2pbFQn2U154if0oJJ7lmSVg0dkY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:430779537626:android:a868db75a615ca9ba62de3",
+        "android_client_info": {
+          "package_name": "com.example.mindease"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGonss2pbFQn2U154if0oJJ7lmSVg0dkY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

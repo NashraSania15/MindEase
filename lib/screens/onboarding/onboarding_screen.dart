@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../auth/login_screen.dart';
 import '../privacy/privacy_screen.dart';
-
+import '../../services/prefs_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -45,7 +45,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       subtitle:
       'Emergency alerts and supportive AI when you need it most.',
       image: 'assets/icons/heart.png',
-      buttonText: 'Get Started',
+      buttonText: 'Continue',
     ),
     _OnboardData(
       bgGradient: const LinearGradient(
@@ -58,6 +58,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       showLogin: true,
     ),
   ];
+
+  Future<void> _finishOnboarding({bool goToPrivacy = false}) async {
+    await PrefsService().setOnboardingDone();
+
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+        goToPrivacy ? const PrivacyScreen() : const LoginScreen(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,10 +89,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             total: pages.length,
             onNext: () {
               if (index == pages.length - 1) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const PrivacyScreen()),
-                );
+                _finishOnboarding(goToPrivacy: true);
               } else {
                 _controller.nextPage(
                   duration: const Duration(milliseconds: 300),
@@ -86,23 +97,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 );
               }
             },
+            onSkip: () {
+              _finishOnboarding();
+            },
           );
         },
       ),
     );
   }
 }
+
 class _OnboardPage extends StatelessWidget {
   final _OnboardData data;
   final int currentIndex;
   final int total;
   final VoidCallback onNext;
+  final VoidCallback onSkip;
 
   const _OnboardPage({
     required this.data,
     required this.currentIndex,
     required this.total,
     required this.onNext,
+    required this.onSkip,
   });
 
   @override
@@ -113,21 +130,13 @@ class _OnboardPage extends StatelessWidget {
       child: SafeArea(
         child: Column(
           children: [
-          Align(
-          alignment: Alignment.topRight,
-          child: TextButton(
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-              );
-            },
-            child: const Text(
-              'Skip',
-              style: TextStyle(fontSize: 16),
+            Align(
+              alignment: Alignment.topRight,
+              child: TextButton(
+                onPressed: onSkip,
+                child: const Text('Skip', style: TextStyle(fontSize: 16)),
+              ),
             ),
-          ),
-        ),
 
             const Spacer(),
 
@@ -145,7 +154,7 @@ class _OnboardPage extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Center(
+              child: const Center(
                 child: Icon(Icons.favorite, size: 60, color: Colors.green),
               ),
             ),
@@ -189,7 +198,7 @@ class _OnboardPage extends StatelessWidget {
                         ? const LinearGradient(
                       colors: [
                         Color(0xFF9BE7C4),
-                        Color(0xFF7AD7C1)
+                        Color(0xFF7AD7C1),
                       ],
                     )
                         : null,
@@ -226,25 +235,9 @@ class _OnboardPage extends StatelessWidget {
 
             if (data.showLogin) ...[
               const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                height: 56,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: Colors.white),
-                ),
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    );
-                  },
-                  child: const Text(
-                    'Login',
-                    style: TextStyle(fontSize: 18),
-                  ),
-                ),
+              TextButton(
+                onPressed: onSkip,
+                child: const Text('Login'),
               ),
             ],
 
@@ -255,6 +248,7 @@ class _OnboardPage extends StatelessWidget {
     );
   }
 }
+
 class _OnboardData {
   final LinearGradient bgGradient;
   final String title;

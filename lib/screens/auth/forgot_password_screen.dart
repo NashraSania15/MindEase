@@ -1,8 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:mindease/services/auth_service.dart';
 import 'check_email_screen.dart';
 
-class ForgotPasswordScreen extends StatelessWidget {
+class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
+
+  @override
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+}
+
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  final TextEditingController emailController = TextEditingController();
+  bool isLoading = false;
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendResetLink() async {
+    setState(() => isLoading = true);
+
+    try {
+      await AuthService().sendPasswordReset(
+        emailController.text.trim(),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const CheckEmailScreen(),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +60,6 @@ class ForgotPasswordScreen extends StatelessWidget {
               children: [
                 const SizedBox(height: 10),
 
-                // Back
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
@@ -33,7 +70,6 @@ class ForgotPasswordScreen extends StatelessWidget {
 
                 const SizedBox(height: 30),
 
-                // Icon
                 Container(
                   height: 72,
                   width: 72,
@@ -75,20 +111,14 @@ class ForgotPasswordScreen extends StatelessWidget {
                   label: 'Email Address',
                   hint: 'your.email@example.com',
                   icon: Icons.email_outlined,
+                  controller: emailController,
                 ),
 
                 const Spacer(),
 
                 _primaryButton(
-                  text: 'Send Reset Link',
-                  onTap: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const CheckEmailScreen(),
-                      ),
-                    );
-                  },
+                  text: isLoading ? 'Sending...' : 'Send Reset Link',
+                  onTap: isLoading ? null : _sendResetLink,
                 ),
 
                 const SizedBox(height: 30),
@@ -104,6 +134,7 @@ class ForgotPasswordScreen extends StatelessWidget {
     required String label,
     required String hint,
     required IconData icon,
+    required TextEditingController controller,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,6 +144,7 @@ class ForgotPasswordScreen extends StatelessWidget {
             const TextStyle(fontSize: 14, color: Color(0xFF7A7A7A))),
         const SizedBox(height: 6),
         TextField(
+          controller: controller,
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: Icon(icon),
@@ -130,7 +162,7 @@ class ForgotPasswordScreen extends StatelessWidget {
 
   static Widget _primaryButton({
     required String text,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
   }) {
     return Container(
       width: double.infinity,

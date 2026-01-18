@@ -1,11 +1,70 @@
 import 'package:flutter/material.dart';
-import '../profile/profile_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class SettingsScreen extends StatelessWidget {
+import '../profile/profile_screen.dart';
+import '../auth/login_screen.dart';
+import 'package:mindease/services/prefs_service.dart';
+
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
   @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool biometricEnabled = false;
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPrefs();
+  }
+
+  Future<void> _loadPrefs() async {
+    biometricEnabled = await PrefsService().isBiometricEnabled();
+    setState(() => loading = false);
+  }
+
+  Future<void> _toggleBiometric(bool value) async {
+    setState(() => biometricEnabled = value);
+    await PrefsService().setBiometric(value);
+  }
+
+  // 🔴 FINAL LOGOUT LOGIC
+  Future<void> _logout() async {
+    try {
+      // 1️⃣ Firebase sign out
+      await FirebaseAuth.instance.signOut();
+
+      // 2️⃣ Optional: disable biometric on logout
+      await PrefsService().setBiometric(false);
+
+      if (!mounted) return;
+
+      // 3️⃣ Navigate to login & clear stack
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Logout failed. Please try again.')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -48,12 +107,12 @@ class SettingsScreen extends StatelessWidget {
 
               _sectionTitle('Preferences'),
               _tile(
-                icon: Icons.notifications,
-                title: 'Notifications',
-                subtitle: 'Stress alerts & reminders',
+                icon: Icons.fingerprint,
+                title: 'Biometric Lock',
+                subtitle: biometricEnabled ? 'Enabled' : 'Disabled',
                 trailing: Switch(
-                  value: true,
-                  onChanged: (_) {},
+                  value: biometricEnabled,
+                  onChanged: _toggleBiometric,
                 ),
               ),
               _tile(
@@ -73,7 +132,7 @@ class SettingsScreen extends StatelessWidget {
               _tile(
                 icon: Icons.lock,
                 title: 'Privacy & Security',
-                subtitle: 'App lock & permissions',
+                subtitle: 'Permissions & app lock',
               ),
 
               const SizedBox(height: 20),
@@ -84,6 +143,7 @@ class SettingsScreen extends StatelessWidget {
                 title: 'Logout',
                 subtitle: 'Sign out from app',
                 iconColor: Colors.red,
+                onTap: _logout,
               ),
             ],
           ),
