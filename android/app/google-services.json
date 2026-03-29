@@ -1,32 +1,13 @@
 {
   "project_info": {
-    "project_number": "430779537626",
-    "project_id": "arealens-480e6",
-    "storage_bucket": "arealens-480e6.firebasestorage.app"
+    "project_number": "316963579062",
+    "project_id": "mindease-51d20",
+    "storage_bucket": "mindease-51d20.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:430779537626:android:015ba7f3cecc0416a62de3",
-        "android_client_info": {
-          "package_name": "com.example.arealens"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBGonss2pbFQn2U154if0oJJ7lmSVg0dkY"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:430779537626:android:a868db75a615ca9ba62de3",
+        "mobilesdk_app_id": "1:316963579062:android:bd40c5db247c88bbc8b217",
         "android_client_info": {
           "package_name": "com.example.mindease"
         }
@@ -34,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBGonss2pbFQn2U154if0oJJ7lmSVg0dkY"
+          "current_key": "AIzaSyApttdrr07td8RsKC6c1Nssy_wHGmEjH5s"
         }
       ],
       "services": {

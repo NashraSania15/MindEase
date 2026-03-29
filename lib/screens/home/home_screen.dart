@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../profile/profile_screen.dart';
 import '../face/face_analysis_screen.dart';
@@ -11,6 +12,7 @@ import '../support/support_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
 
   @override
   Widget build(BuildContext context) {
@@ -35,16 +37,16 @@ class HomeScreen extends StatelessWidget {
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
-                          'Hi, Nashra 👋',
-                          style: TextStyle(
+                          'Hi, ${FirebaseAuth.instance.currentUser?.displayName ?? 'there'} 👋',
+                          style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        SizedBox(height: 4),
-                        Text(
+                        const SizedBox(height: 4),
+                        const Text(
                           'How are you feeling today?',
                           style: TextStyle(color: Colors.grey),
                         ),
@@ -214,9 +216,17 @@ class HomeScreen extends StatelessWidget {
                       },
                     ),
                     _FeatureCard(
-                      title: 'History',
-                      icon: Icons.bar_chart,
-                      onTap: () {},
+                      title: 'Goals',
+                      icon: Icons.flag,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                            const GoalsScreen(),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -246,40 +256,19 @@ class HomeScreen extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                // Goals & Support
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ActionButton(
-                        icon: Icons.flag,
-                        label: 'Goals',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const GoalsScreen(),
-                            ),
-                          );
-                        },
+                // Support
+                _ActionButton(
+                  icon: Icons.favorite,
+                  label: 'Support',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                        const SupportScreen(),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _ActionButton(
-                        icon: Icons.favorite,
-                        label: 'Support',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                              const SupportScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ],
             ),

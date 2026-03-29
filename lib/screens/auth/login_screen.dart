@@ -17,8 +17,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool isLoading = false;
   bool passwordVisible = false;
-  bool confirmPasswordVisible = false;
-
 
   @override
   void dispose() {
@@ -28,24 +26,36 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    // ── Input validation ──────────────────────────────────────────────────────
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your email and password.')),
+      );
+      return;
+    }
+
     setState(() => isLoading = true);
 
     try {
-      await AuthService().login(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
+      await AuthService().login(email: email, password: password);
 
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MainScreen()),
       );
     } catch (e) {
+      if (!mounted) return;
+      // AuthService already strips "Exception: " prefix; show the message only.
+      final msg = e.toString().replaceFirst('Exception: ', '');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(content: Text(msg)),
       );
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 

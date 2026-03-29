@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../profile/profile_screen.dart';
 import '../auth/login_screen.dart';
-import 'package:mindease/services/prefs_service.dart';
+import '../emergency/emergency_screen.dart';
+import 'language_screen.dart';
+import 'privacy_settings_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,33 +16,21 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool biometricEnabled = false;
-  bool loading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadPrefs();
-  }
-
-  Future<void> _loadPrefs() async {
-    biometricEnabled = await PrefsService().isBiometricEnabled();
-    setState(() => loading = false);
-  }
-
-  Future<void> _toggleBiometric(bool value) async {
-    setState(() => biometricEnabled = value);
-    await PrefsService().setBiometric(value);
   }
 
   // 🔴 FINAL LOGOUT LOGIC
   Future<void> _logout() async {
     try {
-      // 1️⃣ Firebase sign out
-      await FirebaseAuth.instance.signOut();
+      // 1️⃣ Clear all SharedPreferences session data
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
 
-      // 2️⃣ Optional: disable biometric on logout
-      await PrefsService().setBiometric(false);
+      // 2️⃣ Firebase sign out
+      await FirebaseAuth.instance.signOut();
 
       if (!mounted) return;
 
@@ -59,11 +50,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
 
     return Scaffold(
       body: Container(
@@ -107,18 +93,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               _sectionTitle('Preferences'),
               _tile(
-                icon: Icons.fingerprint,
-                title: 'Biometric Lock',
-                subtitle: biometricEnabled ? 'Enabled' : 'Disabled',
-                trailing: Switch(
-                  value: biometricEnabled,
-                  onChanged: _toggleBiometric,
-                ),
-              ),
-              _tile(
                 icon: Icons.language,
                 title: 'Language',
                 subtitle: 'English',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const LanguageScreen(),
+                    ),
+                  );
+                },
               ),
 
               const SizedBox(height: 20),
@@ -128,12 +113,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: Icons.warning,
                 title: 'Emergency Contacts',
                 subtitle: 'Manage SOS contacts',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const EmergencyScreen(),
+                    ),
+                  );
+                },
               ),
               _tile(
                 icon: Icons.lock,
                 title: 'Privacy & Security',
                 subtitle: 'Permissions & app lock',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PrivacySettingsScreen(),
+                    ),
+                  );
+                },
               ),
+
 
               const SizedBox(height: 20),
 

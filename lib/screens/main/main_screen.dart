@@ -5,8 +5,7 @@ import '../diary/diary_screen.dart';
 import '../history/history_screen.dart';
 import '../emergency/emergency_screen.dart';
 import '../settings/settings_screen.dart';
-import 'package:mindease/services/biometric_service.dart';
-import 'package:mindease/services/prefs_service.dart';
+
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -17,7 +16,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-  bool _isAuthenticated = false;
 
   final List<Widget> _screens = const [
     HomeScreen(),
@@ -30,39 +28,11 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    _authenticateUser();
-  }
-
-  Future<void> _authenticateUser() async {
-    bool enabled = await PrefsService().isBiometricEnabled();
-
-    if (!enabled) {
-      setState(() => _isAuthenticated = true);
-      return;
-    }
-
-    bool unlocked = await BiometricService().authenticate();
-
-    if (!mounted) return;
-
-    if (unlocked) {
-      setState(() => _isAuthenticated = true);
-    } else {
-      Navigator.pop(context);
-    }
   }
 
 
   @override
   Widget build(BuildContext context) {
-    // 🔒 While biometric is not authenticated
-    if (!_isAuthenticated) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
 
     return Scaffold(
       body: _screens[_currentIndex],
