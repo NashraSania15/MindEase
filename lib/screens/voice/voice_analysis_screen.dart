@@ -1,4 +1,9 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import '../../services/voice_analysis_service.dart';
 
 class VoiceAnalysisScreen extends StatefulWidget {
   const VoiceAnalysisScreen({super.key});
@@ -9,15 +14,205 @@ class VoiceAnalysisScreen extends StatefulWidget {
 
 class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
   int step = 0; // 0-idle, 1-recording, 2-result
-  int seconds = 7;
+  int seconds = 0;
+
+  final AudioRecorder _recorder = AudioRecorder();
+  Timer? _timer;
+  String? _recordingPath;
+
+  // API state
+  bool _isLoading = false;
+  VoiceAnalysisResult? _result;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _recorder.dispose();
+    super.dispose();
+  }
+
+  // ── Recording ─────────────────────────────────────────────────────────────
+
+  Future<void> _startRecording() async {
+    try {
+      if (await _recorder.hasPermission()) {
+        final dir = await getTemporaryDirectory();
+        final path =
+            '${dir.path}/mindease_voice_${DateTime.now().millisecondsSinceEpoch}.wav';
+
+        await _recorder.start(
+          const RecordConfig(
+            encoder: AudioEncoder.wav,
+            sampleRate: 16000,
+            numChannels: 1,
+          ),
+          path: path,
+        );
+
+        setState(() {
+          step = 1;
+          seconds = 0;
+          _recordingPath = path;
+          _result = null;
+          _errorMessage = null;
+        });
+
+        _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+          setState(() {
+            seconds = t.tick;
+          });
+        });
+      } else {
+        setState(() {
+          _errorMessage =
+              'Microphone permission denied. Please grant access in settings.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage =
+            'Could not start recording. Please check microphone permissions.';
+      });
+    }
+  }
+
+  Future<void> _stopRecording() async {
+    _timer?.cancel();
+    _timer = null;
+
+    try {
+      final path = await _recorder.stop();
+      if (path != null) {
+        _recordingPath = path;
+      }
+    } catch (_) {}
+
+    if (_recordingPath == null ||
+        !await File(_recordingPath!).exists()) {
+      setState(() {
+        step = 0;
+        _errorMessage = 'No recording found. Please try again.';
+      });
+      return;
+    }
+
+    // Send to API
+    await _analyzeVoice();
+  }
+
+  // ── API call ──────────────────────────────────────────────────────────────
+
+  Future<void> _analyzeVoice() async {
+    setState(() {
+      _isLoading = true;
+      step = 2;
+      _result = null;
+      _errorMessage = null;
+    });
+
+    try {
+      final result =
+          await VoiceAnalysisService.analyzeVoice(File(_recordingPath!));
+      setState(() {
+        _result = result;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _isLoading = false;
+      });
+    }
+  }
+
+  // ── Helpers for dynamic theming ───────────────────────────────────────────
+
+  Color _stressColor(double level) {
+    if (level >= 70) return const Color(0xFFE53935); // red – high
+    if (level >= 40) return const Color(0xFFFFA726); // orange – medium
+    return const Color(0xFF43A047); // green – calm
+  }
+
+  String _stressLabel(double level) {
+    if (level >= 70) return 'High Stress';
+    if (level >= 40) return 'Moderate';
+    return 'Calm';
+  }
+
+  /// Returns an emoji based on stress level (NOT emotion).
+  String _stressEmoji(double level) {
+    if (level >= 70) return '😰';
+    if (level >= 40) return '😐';
+    return '😌';
+  }
+
+  ({String label, String emoji}) _emotionDisplay(String emotion) {
+    switch (emotion.toLowerCase()) {
+      case 'neutral':
+      case 'calm':
+        return (label: 'calm', emoji: '😌');
+      case 'happy':
+      case 'happiness':
+      case 'joy':
+        return (label: 'joyful', emoji: '😊');
+      case 'sad':
+      case 'sadness':
+        return (label: 'low mood', emoji: '😔');
+      case 'fear':
+      case 'fearful':
+      case 'nervousness':
+      case 'anxious':
+      case 'anxiety':
+        return (label: 'anxious', emoji: '😰');
+      case 'angry':
+      case 'anger':
+        return (label: 'tense', emoji: '😠');
+      case 'surprise':
+      case 'surprised':
+        return (label: 'surprised', emoji: '😲');
+      case 'disgust':
+        return (label: 'uneasy', emoji: '😣');
+      default:
+        return (label: emotion, emoji: '🧠');
+    }
+  }
+
+  String _advice(double level, String emotion) {
+    if (level >= 70) {
+      return 'Your voice patterns indicate high stress levels. '
+          'Consider taking a short break, trying a breathing exercise, '
+          'or reaching out to someone you trust.';
+    }
+    if (level >= 40) {
+      return 'Your voice shows signs of moderate stress. A brief walk, '
+          'mindfulness moment, or some relaxation may help you feel better.';
+    }
+    return 'You appear to be in a calm state. Keep nurturing that inner peace '
+        'with regular self-care routines.';
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
+    // Dynamic gradient based on result
+    List<Color> bgGradient;
+    if (_result != null) {
+      final color = _stressColor(_result!.stressLevel);
+      bgGradient = [
+        color.withValues(alpha: 0.12),
+        color.withValues(alpha: 0.04),
+      ];
+    } else {
+      bgGradient = const [Color(0xFFFFE5F0), Color(0xFFFFF1F6)];
+    }
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFFFE5F0), Color(0xFFFFF1F6)],
+            colors: bgGradient,
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -52,7 +247,30 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
 
                 if (step == 0) _idleMic(),
                 if (step == 1) _recordingMic(),
-                if (step == 2) _resultUI(),
+
+                // Loading indicator (after recording stops, before result)
+                if (_isLoading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Column(
+                      children: [
+                        CircularProgressIndicator(
+                          color: Color(0xFF7AD7C1),
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          'Analyzing your voice…',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // Error message
+                if (_errorMessage != null) _errorSection(_errorMessage!),
+
+                // Result section (dynamic)
+                if (_result != null && !_isLoading) _resultSection(_result!),
               ],
             ),
           ),
@@ -81,11 +299,7 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
     return Column(
       children: [
         GestureDetector(
-          onTap: () {
-            setState(() {
-              step = 1;
-            });
-          },
+          onTap: _startRecording,
           child: _micCircle(
             color1: Color(0xFF9BE7C4),
             color2: Color(0xFF7AD7C1),
@@ -108,7 +322,7 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
             12,
-                (index) => Container(
+            (index) => Container(
               margin: const EdgeInsets.symmetric(horizontal: 2),
               height: 20.0 + (index % 5) * 6,
               width: 4,
@@ -123,87 +337,146 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
         const SizedBox(height: 30),
 
         GestureDetector(
-          onTap: () {
-            setState(() {
-              step = 2;
-            });
-          },
+          onTap: _stopRecording,
           child: _micCircle(
             color1: Colors.redAccent,
             color2: Colors.red,
-            icon: Icons.mic,
+            icon: Icons.stop,
           ),
         ),
 
         const SizedBox(height: 14),
-        Text('$seconds s'),
+        Text('${seconds}s'),
         const Text('Recording...'),
       ],
     );
   }
 
-  Widget _resultUI() {
+  // ── Result UI (dynamic) ───────────────────────────────────────────────────
+
+  Widget _resultSection(VoiceAnalysisResult result) {
+    final stressValue = result.stressLevel.clamp(0, 100).toDouble();
+    final color = _stressColor(stressValue);
+    final stressLbl = _stressLabel(stressValue);
+    final stressEmoji = _stressEmoji(stressValue);
+    final bgColor = color.withValues(alpha: 0.08);
+
     return Column(
       children: [
-        // Result card
+        const SizedBox(height: 4),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
+            border:
+                Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: const [
-                  Text('😔', style: TextStyle(fontSize: 32)),
-                  SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Sad',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text('Detected Mood'),
-                    ],
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Text('Stress Level'),
-                  Text('68%'),
-                ],
-              ),
-
-              const SizedBox(height: 6),
-
-              LinearProgressIndicator(
-                value: 0.68,
-                backgroundColor: Colors.grey.shade300,
-                color: Colors.orange,
-                minHeight: 8,
+              // Title
+              const Text(
+                '🎙️ Voice Analysis Result',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
 
               const SizedBox(height: 16),
 
+              // Stress-level-driven banner
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      stressEmoji,
+                      style: const TextStyle(fontSize: 28),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'You seem:',
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
+                        Text(
+                          stressLbl,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: color,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Emotion displayed separately
+              Text(
+                'Emotion detected: ${result.emotion}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Stress level bar
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Stress Level',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  Text(
+                    '${stressValue.toStringAsFixed(0)}%  •  $stressLbl',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
+              // Color indicator bar
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: stressValue / 100,
+                  minHeight: 10,
+                  backgroundColor: Colors.grey.shade200,
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Contextual advice
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE3F2FD),
-                  borderRadius: BorderRadius.circular(16),
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Text(
-                  'You sound tired today. Your voice shows signs of fatigue '
-                      'and lower energy.',
+                child: Text(
+                  _advice(stressValue, result.emotion),
+                  style: const TextStyle(fontSize: 14, height: 1.5),
                 ),
               ),
             ],
@@ -219,6 +492,7 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
 
         const SizedBox(height: 20),
 
+        // Action buttons
         Row(
           children: [
             Expanded(
@@ -227,6 +501,9 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
                 onTap: () {
                   setState(() {
                     step = 0;
+                    _result = null;
+                    _errorMessage = null;
+                    _recordingPath = null;
                   });
                 },
               ),
@@ -238,6 +515,42 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
           ],
         ),
       ],
+    );
+  }
+
+  // ── Error UI ──────────────────────────────────────────────────────────────
+
+  Widget _errorSection(String message) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFEBEE),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.red.shade200),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.red),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(color: Colors.red),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                step = 0;
+                _errorMessage = null;
+              });
+            },
+            child: const Icon(Icons.refresh, color: Colors.red),
+          ),
+        ],
+      ),
     );
   }
 
