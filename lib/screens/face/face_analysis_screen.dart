@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/face_analysis_service.dart';
+import '../../services/stress_history_service.dart';
 
 class FaceAnalysisScreen extends StatefulWidget {
   const FaceAnalysisScreen({super.key});
@@ -18,6 +19,7 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
   bool _isLoading = false;
   FaceAnalysisResult? _result;
   String? _errorMessage;
+  bool _isSaving = false;
 
   // ── Image picking ──────────────────────────────────────────────────────────
 
@@ -69,6 +71,32 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
         _isLoading = false;
       });
+    }
+  }
+
+  // ── Save result to Firestore ───────────────────────────────────────────────
+
+  Future<void> _saveResult() async {
+    if (_result == null || _isSaving) return;
+    setState(() => _isSaving = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await StressHistoryService.saveStressResult(
+        faceStress: _result!.stressLevel,
+      );
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Result saved ✅')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Failed to save. Try again.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -426,8 +454,8 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: _primaryButton(
-                text: 'Save Result',
-                onTap: () {},
+                text: _isSaving ? 'Saving…' : 'Save Result',
+                onTap: _isSaving ? null : _saveResult,
               ),
             ),
           ],

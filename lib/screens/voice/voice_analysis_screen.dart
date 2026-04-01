@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../services/voice_analysis_service.dart';
+import '../../services/stress_history_service.dart';
 
 class VoiceAnalysisScreen extends StatefulWidget {
   const VoiceAnalysisScreen({super.key});
@@ -24,6 +25,7 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
   bool _isLoading = false;
   VoiceAnalysisResult? _result;
   String? _errorMessage;
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -123,6 +125,32 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
         _isLoading = false;
       });
+    }
+  }
+
+  // ── Save result to Firestore ──────────────────────────────────────────────
+
+  Future<void> _saveResult() async {
+    if (_result == null || _isSaving) return;
+    setState(() => _isSaving = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await StressHistoryService.saveStressResult(
+        voiceStress: _result!.stressLevel,
+      );
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Result saved ✅')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Failed to save. Try again.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -510,7 +538,10 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _primaryButton('Save Result'),
+              child: GestureDetector(
+                onTap: _isSaving ? null : _saveResult,
+                child: _primaryButton(_isSaving ? 'Saving…' : 'Save Result'),
+              ),
             ),
           ],
         ),

@@ -16,6 +16,7 @@ class DiaryDetailScreen extends StatelessWidget {
         ? DateFormat('EEEE, MMMM d, yyyy – h:mm a')
             .format(createdAt.toDate())
         : '';
+    final textStress = entry['textStress'] as num?;
 
     return Scaffold(
       body: Container(
@@ -94,6 +95,33 @@ class DiaryDetailScreen extends StatelessWidget {
                             const SizedBox(height: 8),
                             Text(mood,
                                 style: const TextStyle(fontSize: 16)),
+                            if (textStress != null) ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: textStress >= 70
+                                      ? const Color(0x22F44336)
+                                      : textStress >= 40
+                                          ? const Color(0x22FF9800)
+                                          : const Color(0x224CAF50),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  'Stress Level: ${textStress.toStringAsFixed(0)}%',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: textStress >= 70
+                                        ? const Color(0xFFF44336)
+                                        : textStress >= 40
+                                            ? const Color(0xFFFF9800)
+                                            : const Color(0xFF4CAF50),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),

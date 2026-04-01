@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mindease/services/diary_service.dart';
+import 'package:mindease/services/text_analysis_service.dart';
 import 'diary_detail_screen.dart';
 
 class DiaryScreen extends StatefulWidget {
@@ -50,9 +51,19 @@ class _DiaryScreenState extends State<DiaryScreen> {
     setState(() => _isSaving = true);
 
     try {
+      // ── AI stress analysis (best-effort; diary saves even if this fails) ──
+      double? textStress;
+      try {
+        final result = await TextAnalysisService.analyzeText(text);
+        textStress = result.stressLevel;
+      } catch (_) {
+        // Silently continue — stress field will be null for this entry.
+      }
+
       await _diaryService.addEntry(
         text: text,
         mood: _moods[selectedMood],
+        textStress: textStress,
       );
 
       _textController.clear();
@@ -661,6 +672,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                       ? DateFormat('MMM d, yyyy – h:mm a')
                           .format(createdAt.toDate())
                       : '';
+                  final textStress = data['textStress'] as num?;
 
                   return GestureDetector(
                     onTap: () {
@@ -689,6 +701,33 @@ class _DiaryScreenState extends State<DiaryScreen> {
                                       fontWeight: FontWeight.w600,
                                       fontSize: 13)),
                               const Spacer(),
+                              if (textStress != null) ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: textStress >= 70
+                                        ? const Color(0x22F44336)
+                                        : textStress >= 40
+                                            ? const Color(0x22FF9800)
+                                            : const Color(0x224CAF50),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    'Stress ${textStress.toStringAsFixed(0)}%',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: textStress >= 70
+                                          ? const Color(0xFFF44336)
+                                          : textStress >= 40
+                                              ? const Color(0xFFFF9800)
+                                              : const Color(0xFF4CAF50),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                              ],
                               Text(mood,
                                   style: const TextStyle(fontSize: 13)),
                             ],

@@ -22,6 +22,7 @@ class DiaryService {
     required String text,
     required String mood,
     String? audioUrl,
+    double? textStress,
   }) async {
     final uid = _requireUid();
     await _firestore
@@ -32,6 +33,7 @@ class DiaryService {
       'text': text,
       'mood': mood,
       'audioUrl': audioUrl,
+      'textStress': textStress,
       'createdAt': Timestamp.now(),
     });
   }

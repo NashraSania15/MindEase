@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/stress_history_service.dart';
 
 import '../profile/profile_screen.dart';
 import '../face/face_analysis_screen.dart';
@@ -77,66 +79,111 @@ class HomeScreen extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                // Mood Card
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        height: 56,
-                        width: 56,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(0xFFE8F5E9),
-                        ),
-                        child: const Center(
-                          child:
-                          Text('😊', style: TextStyle(fontSize: 26)),
-                        ),
+                // Stress Card — connected to Firestore (real-time)
+                StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: StressHistoryService.latestEntryStream(),
+                  builder: (context, snapshot) {
+                    // Defaults (no data yet)
+                    String emoji = '😊';
+                    String label = 'Calm';
+                    String levelText = 'Stress Level: Low';
+                    String percent = '—';
+                    Color borderColor = const Color(0xFF9BE7C4);
+                    Color bgColor = const Color(0xFFE8F5E9);
+
+                    if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                      final data = snapshot.data!.docs.first.data();
+                      final face = (data['faceStress'] as num?)?.toDouble() ?? 0;
+                      final voice = (data['voiceStress'] as num?)?.toDouble() ?? 0;
+                      final text = (data['textStress'] as num?)?.toDouble() ?? 0;
+
+                      // Average only the modalities that were actually measured
+                      final values = [face, voice, text].where((v) => v > 0).toList();
+                      final stress = values.isNotEmpty
+                          ? (values.reduce((a, b) => a + b) / values.length).clamp(0.0, 100.0)
+                          : 0.0;
+                      percent = '${stress.toStringAsFixed(0)}%';
+
+                      if (stress >= 80) {
+                        emoji = '😨';
+                        label = 'High Stress';
+                        levelText = 'Stress Level: Very High';
+                        borderColor = const Color(0xFFD32F2F);
+                        bgColor = const Color(0xFFFFEBEE);
+                      } else if (stress >= 60) {
+                        emoji = '😟';
+                        label = 'Stressed';
+                        levelText = 'Stress Level: High';
+                        borderColor = const Color(0xFFE53935);
+                        bgColor = const Color(0xFFFFEBEE);
+                      } else if (stress >= 30) {
+                        emoji = '😐';
+                        label = 'Moderate';
+                        levelText = 'Stress Level: Moderate';
+                        borderColor = const Color(0xFFFFA726);
+                        bgColor = const Color(0xFFFFF3E0);
+                      }
+                    }
+
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      const SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            'Calm',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
+                      child: Row(
+                        children: [
+                          Container(
+                            height: 56,
+                            width: 56,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: bgColor,
+                            ),
+                            child: Center(
+                              child: Text(emoji, style: const TextStyle(fontSize: 26)),
                             ),
                           ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Stress Level: Low',
-                            style: TextStyle(color: Colors.grey),
+                          const SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Stress',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '$label · $levelText',
+                                style: const TextStyle(color: Colors.grey, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          Container(
+                            height: 52,
+                            width: 52,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: borderColor,
+                                width: 6,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                percent,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                      const Spacer(),
-                      Container(
-                        height: 52,
-                        width: 52,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Color(0xFF9BE7C4),
-                            width: 6,
-                          ),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            '35%',
-                            style:
-                            TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 24),

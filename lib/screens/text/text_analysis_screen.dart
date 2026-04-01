@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/text_analysis_service.dart';
+import '../../services/stress_history_service.dart';
 
 class TextAnalysisScreen extends StatefulWidget {
   const TextAnalysisScreen({super.key});
@@ -15,6 +16,7 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
   bool _isLoading = false;
   TextAnalysisResult? _result;
   String? _errorMessage;
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -44,6 +46,32 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
         _isLoading = false;
       });
+    }
+  }
+
+  // ── Save result to Firestore ───────────────────────────────────────────────
+
+  Future<void> _saveResult() async {
+    if (_result == null || _isSaving) return;
+    setState(() => _isSaving = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await StressHistoryService.saveStressResult(
+        textStress: _result!.stressLevel,
+      );
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Result saved ✅')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Failed to save. Try again.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -385,8 +413,8 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: _primaryButton(
-                text: 'Save to Diary',
-                onTap: () {},
+                text: _isSaving ? 'Saving…' : 'Save to Diary',
+                onTap: _isSaving ? null : _saveResult,
               ),
             ),
           ],
