@@ -93,15 +93,8 @@ class HomeScreen extends StatelessWidget {
 
                     if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
                       final data = snapshot.data!.docs.first.data();
-                      final face = (data['faceStress'] as num?)?.toDouble() ?? 0;
-                      final voice = (data['voiceStress'] as num?)?.toDouble() ?? 0;
-                      final text = (data['textStress'] as num?)?.toDouble() ?? 0;
-
-                      // Average only the modalities that were actually measured
-                      final values = [face, voice, text].where((v) => v > 0).toList();
-                      final stress = values.isNotEmpty
-                          ? (values.reduce((a, b) => a + b) / values.length).clamp(0.0, 100.0)
-                          : 0.0;
+                      // Use the single shared calculation from the service
+                      final stress = StressHistoryService.computeStress(data);
                       percent = '${stress.toStringAsFixed(0)}%';
 
                       if (stress >= 80) {

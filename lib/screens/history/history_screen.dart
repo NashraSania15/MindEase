@@ -14,17 +14,6 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   int selectedTab = 0; // 0 = Daily, 1 = Weekly
 
-  /// Compute final stress from a single Firestore doc.
-  /// Only averages non-zero modalities (same logic as dashboard).
-  static double _computeStress(Map<String, dynamic> d) {
-    final face = (d['faceStress'] as num?)?.toDouble() ?? 0;
-    final voice = (d['voiceStress'] as num?)?.toDouble() ?? 0;
-    final text = (d['textStress'] as num?)?.toDouble() ?? 0;
-    final values = [face, voice, text].where((v) => v > 0).toList();
-    if (values.isEmpty) return 0;
-    return (values.reduce((a, b) => a + b) / values.length).clamp(0.0, 100.0);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -113,7 +102,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         if (ts == null) continue;
         final date = ts.toDate();
         if (date.isBefore(cutoff)) continue;
-        final stress = _computeStress(doc.data());
+        final stress = StressHistoryService.computeStress(doc.data());
         points.add(_ChartPoint(date: date, stress: stress));
       }
 
@@ -134,7 +123,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         if (date.isBefore(cutoff)) continue;
         final weeksAgo = today.difference(DateTime(date.year, date.month, date.day)).inDays ~/ 7;
         weekBuckets.putIfAbsent(weeksAgo, () => []);
-        weekBuckets[weeksAgo]!.add(_computeStress(doc.data()));
+        weekBuckets[weeksAgo]!.add(StressHistoryService.computeStress(doc.data()));
       }
 
       final points = <_ChartPoint>[];
@@ -210,7 +199,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     double bestStress = 100;
 
     for (final doc in filtered) {
-      final stress = _computeStress(doc.data());
+      final stress = StressHistoryService.computeStress(doc.data());
       totalStress += stress;
       if (stress < bestStress && stress > 0) bestStress = stress;
     }
@@ -283,7 +272,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             final date = ts != null
                 ? DateFormat('MMM d, h:mm a').format(ts.toDate())
                 : '—';
-            final stress = _computeStress(d);
+            final stress = StressHistoryService.computeStress(d);
 
             String mood;
             if (stress >= 80) {
@@ -334,7 +323,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
       if (weekDocs.isEmpty) continue;
 
-      final stresses = weekDocs.map((d) => _computeStress(d.data())).toList();
+      final stresses = weekDocs.map((d) => StressHistoryService.computeStress(d.data())).toList();
       final avg = stresses.reduce((a, b) => a + b) / stresses.length;
       final label = '${DateFormat('MMM d').format(weekStart)} – ${DateFormat('MMM d').format(weekEnd)}';
 
