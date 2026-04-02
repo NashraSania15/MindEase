@@ -6,11 +6,18 @@ class PrivacyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : const Color(0xFF7A7A7A);
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFEDE7F6), Color(0xFFE0F2F1)],
+            colors: isDark
+                ? const [Color(0xFF0D0D1A), Color(0xFF1A1A2E)]
+                : const [Color(0xFFEDE7F6), Color(0xFFE0F2F1)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -44,18 +51,17 @@ class PrivacyScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF4A4A4A),
                   ),
                 ),
 
                 const SizedBox(height: 8),
 
-                const Text(
+                Text(
                   'We need a few permissions to help you track\nand manage stress effectively',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF7A7A7A),
+                    color: subtextColor,
                   ),
                 ),
 
@@ -67,6 +73,9 @@ class PrivacyScreen extends StatelessWidget {
                   title: 'Microphone Access',
                   subtitle:
                   'Analyze your voice patterns to detect stress levels and emotional state',
+                  cardColor: cardColor,
+                  textColor: textColor,
+                  subtextColor: subtextColor,
                 ),
 
                 _permissionCard(
@@ -75,6 +84,9 @@ class PrivacyScreen extends StatelessWidget {
                   title: 'Camera Access',
                   subtitle:
                   'Use facial analysis to measure stress, fatigue, and emotional well-being',
+                  cardColor: cardColor,
+                  textColor: textColor,
+                  subtextColor: subtextColor,
                 ),
 
                 _permissionCard(
@@ -83,6 +95,9 @@ class PrivacyScreen extends StatelessWidget {
                   title: 'Text Analysis',
                   subtitle:
                   'Understand your emotional state through your written words and journal entries',
+                  cardColor: cardColor,
+                  textColor: textColor,
+                  subtextColor: subtextColor,
                 ),
 
                 const SizedBox(height: 20),
@@ -91,14 +106,14 @@ class PrivacyScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE3F2FD),
+                    color: isDark ? const Color(0xFF1A2A3A) : const Color(0xFFE3F2FD),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Icon(Icons.lock, color: Color(0xFF4A90E2)),
-                      SizedBox(width: 10),
+                    children: [
+                      const Icon(Icons.lock, color: Color(0xFF4A90E2)),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           'Privacy Promise\nAll data is encrypted and stored securely on your device. '
@@ -106,7 +121,7 @@ class PrivacyScreen extends StatelessWidget {
                               'You can revoke permissions anytime in settings.',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Color(0xFF4A4A4A),
+                            color: isDark ? Colors.grey.shade300 : const Color(0xFF4A4A4A),
                           ),
                         ),
                       ),
@@ -171,12 +186,15 @@ class PrivacyScreen extends StatelessWidget {
     required Color iconColor,
     required String title,
     required String subtitle,
+    required Color cardColor,
+    required Color textColor,
+    required Color subtextColor,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -204,17 +222,18 @@ class PrivacyScreen extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
+                    color: textColor,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF7A7A7A),
+                    color: subtextColor,
                   ),
                 ),
               ],

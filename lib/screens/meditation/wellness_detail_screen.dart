@@ -8,11 +8,18 @@ class WellnessDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
+            colors: isDark
+                ? const [Color(0xFF0D0D1A), Color(0xFF1A1A2E)]
+                : const [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -26,15 +33,16 @@ class WellnessDetailScreen extends StatelessWidget {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back),
+                      icon: Icon(Icons.arrow_back, color: textColor),
                       onPressed: () => Navigator.pop(context),
                     ),
                     Expanded(
                       child: Text(
                         '${category.emoji} ${category.title}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
+                          color: textColor,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -67,9 +75,10 @@ class WellnessDetailScreen extends StatelessWidget {
                             const SizedBox(height: 8),
                             Text(
                               category.description,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
+                                color: textColor,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -78,7 +87,7 @@ class WellnessDetailScreen extends StatelessWidget {
                               'Here are exercises, tips & suggestions to help you',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.grey[700],
+                                color: subtextColor,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -180,9 +189,10 @@ class _SectionHeader extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
           ),
         ),
       ],
@@ -215,7 +225,7 @@ class _TipCardState extends State<_TipCard> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E2C) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -249,9 +259,10 @@ class _TipCardState extends State<_TipCard> {
                 Expanded(
                   child: Text(
                     widget.tip.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
                     ),
                   ),
                 ),
@@ -273,7 +284,7 @@ class _TipCardState extends State<_TipCard> {
                   widget.tip.detail,
                   style: TextStyle(
                     fontSize: 13.5,
-                    color: Colors.grey[700],
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey[700],
                     height: 1.5,
                   ),
                 ),

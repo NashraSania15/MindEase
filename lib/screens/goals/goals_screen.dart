@@ -36,14 +36,21 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+
     final completed = goals.where((g) => g['done']).length;
     final progress = goals.isEmpty ? 0.0 : completed / goals.length;
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
+            colors: isDark
+                ? const [Color(0xFF0D0D1A), Color(0xFF1A1A2E)]
+                : const [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -58,15 +65,16 @@ class _GoalsScreenState extends State<GoalsScreen> {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back),
+                      icon: Icon(Icons.arrow_back, color: textColor),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         "Today's Wellness Goals",
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
+                          color: textColor,
                         ),
                       ),
                     ),
@@ -77,7 +85,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEAFBF6),
+                            color: isDark ? const Color(0xFF1A2E2A) : const Color(0xFFEAFBF6),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Row(
@@ -115,7 +123,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           const SizedBox(width: 6),
                           Text(
                             '$completed of ${goals.length} completed',
-                            style: const TextStyle(color: Colors.grey),
+                            style: TextStyle(color: subtextColor),
                           ),
                         ],
                       ),
@@ -126,7 +134,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: cardColor,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Column(
@@ -146,7 +154,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                               child: LinearProgressIndicator(
                                 value: progress,
                                 minHeight: 10,
-                                backgroundColor: Colors.grey.shade200,
+                                backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
                                 color: const Color(0xFF9BE7C4),
                               ),
                             ),
@@ -162,26 +170,27 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: cardColor,
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Column(
+                          child: Column(
                             children: [
-                              Text('🎯',
+                              const Text('🎯',
                                   style: TextStyle(fontSize: 36)),
-                              SizedBox(height: 10),
+                              const SizedBox(height: 10),
                               Text(
                                 'No goals yet!',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
+                                  color: textColor,
                                 ),
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 4),
                               Text(
                                 'Tap the button below to add your first goal',
                                 style: TextStyle(
-                                    color: Colors.grey, fontSize: 13),
+                                    color: subtextColor, fontSize: 13),
                               ),
                             ],
                           ),
@@ -228,13 +237,16 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFE8A3),
+                          color: isDark ? const Color(0xFF2A2A1A) : const Color(0xFFFFE8A3),
                           borderRadius: BorderRadius.circular(18),
                         ),
-                        child: const Text(
+                        child: Text(
                           '✨ Keep Going!\n\n'
                           'Small habits reduce stress over time. '
                           'You\'re building a healthier, calmer you.',
+                          style: TextStyle(
+                            color: isDark ? Colors.grey.shade300 : Colors.black87,
+                          ),
                         ),
                       ),
 
@@ -251,6 +263,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
   }
 
   Widget _goalTile(Map<String, dynamic> goal, int index) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
     final isDone = goal['done'] as bool;
 
     return Dismissible(
@@ -271,7 +286,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: isDone ? const Color(0xFFEAFBF6) : Colors.white,
+          color: isDone
+              ? (isDark ? const Color(0xFF1A2E2A) : const Color(0xFFEAFBF6))
+              : cardColor,
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
@@ -319,7 +336,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                 style: TextStyle(
                   fontSize: 14,
                   decoration: isDone ? TextDecoration.lineThrough : null,
-                  color: isDone ? Colors.grey : Colors.black87,
+                  color: isDone ? Colors.grey : textColor,
                 ),
               ),
             ),
@@ -374,16 +391,21 @@ class _GoalsScreenState extends State<GoalsScreen> {
   void _showAddGoalSheet(BuildContext context) {
     final controller = TextEditingController();
     String selectedEmoji = '🎯';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final emojis = ['🎯', '🧘', '💧', '📓', '☕', '🏃', '💪', '🍎', '😊', '🌿', '📖', '🎨'];
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: isDark ? const Color(0xFF1E1E2C) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
+        final sheetDark = Theme.of(ctx).brightness == Brightness.dark;
+        final sheetTextColor = sheetDark ? Colors.white : Colors.black87;
+
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
             return Padding(
@@ -410,27 +432,29 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  const Text(
+                  Text(
                     'Add New Goal',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
+                      color: sheetTextColor,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Set a new wellness goal for today',
-                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                    style: TextStyle(color: sheetDark ? Colors.grey.shade400 : Colors.grey, fontSize: 13),
                   ),
 
                   const SizedBox(height: 20),
 
                   // Emoji picker
-                  const Text(
+                  Text(
                     'Choose an icon',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
+                      color: sheetTextColor,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -449,7 +473,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? const Color(0xFF9BE7C4).withOpacity(0.3)
-                                : Colors.grey.shade100,
+                                : (sheetDark ? Colors.grey.shade800 : Colors.grey.shade100),
                             borderRadius: BorderRadius.circular(12),
                             border: isSelected
                                 ? Border.all(
@@ -469,11 +493,12 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   const SizedBox(height: 20),
 
                   // Goal text field
-                  const Text(
+                  Text(
                     'Your goal',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
+                      color: sheetTextColor,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -484,7 +509,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       hintText: 'e.g. Drink 8 glasses of water',
                       hintStyle: const TextStyle(color: Colors.grey),
                       filled: true,
-                      fillColor: Colors.grey.shade100,
+                      fillColor: sheetDark ? Colors.grey.shade800 : Colors.grey.shade100,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
                         borderSide: BorderSide.none,
@@ -505,7 +530,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
+                              color: sheetDark ? Colors.grey.shade800 : Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: const Center(

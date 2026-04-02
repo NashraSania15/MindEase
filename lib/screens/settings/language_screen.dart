@@ -55,11 +55,16 @@ class _LanguageScreenState extends State<LanguageScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
+            colors: isDark
+                ? const [Color(0xFF0D0D1A), Color(0xFF1A1A2E)]
+                : const [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -74,26 +79,27 @@ class _LanguageScreenState extends State<LanguageScreen> {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: IconButton(
-                        icon: const Icon(Icons.arrow_back),
+                        icon: Icon(Icons.arrow_back, color: textColor),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ),
 
                     const SizedBox(height: 10),
 
-                    const Text(
+                    Text(
                       'Language',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w600,
+                        color: textColor,
                       ),
                     ),
 
                     const SizedBox(height: 8),
 
-                    const Text(
+                    Text(
                       'Choose your preferred language',
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey),
                     ),
 
                     const SizedBox(height: 24),
@@ -121,11 +127,14 @@ class _LanguageScreenState extends State<LanguageScreen> {
     required String subtitle,
     required String code,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
     final isSelected = _selected == code;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(18),
         border: isSelected
             ? Border.all(color: const Color(0xFF9BE7C4), width: 2)
@@ -141,9 +150,10 @@ class _LanguageScreenState extends State<LanguageScreen> {
           title,
           style: TextStyle(
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            color: textColor,
           ),
         ),
-        subtitle: Text(subtitle),
+        subtitle: Text(subtitle, style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey)),
         trailing: isSelected
             ? const Icon(Icons.check_circle, color: Color(0xFF9BE7C4))
             : const Icon(Icons.radio_button_unchecked, color: Colors.grey),

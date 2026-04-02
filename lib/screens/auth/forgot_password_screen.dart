@@ -27,6 +27,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         emailController.text.trim(),
       );
 
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -34,21 +35,31 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
       );
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF4A4A4A);
+    final subtextColor = isDark ? Colors.grey.shade400 : const Color(0xFF7A7A7A);
+    final fieldFillColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final fieldTextStyle = TextStyle(color: isDark ? Colors.white : Colors.black87);
+    final fieldHintStyle = TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey);
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFEDE7F6), Color(0xFFE0F2F1)],
+            colors: isDark
+                ? const [Color(0xFF0D0D1A), Color(0xFF1A1A2E)]
+                : const [Color(0xFFEDE7F6), Color(0xFFE0F2F1)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -63,7 +74,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back),
+                    icon: Icon(Icons.arrow_back, color: textColor),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
@@ -85,23 +96,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                 const SizedBox(height: 20),
 
-                const Text(
+                Text(
                   'Forgot Password?',
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF4A4A4A),
+                    color: textColor,
                   ),
                 ),
 
                 const SizedBox(height: 10),
 
-                const Text(
-                  'Enter your email address and we’ll\nsend you a reset link',
+                Text(
+                  'Enter your email address and we\'ll\nsend you a reset link',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF7A7A7A),
+                    color: subtextColor,
                   ),
                 ),
 
@@ -112,6 +123,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   hint: 'your.email@example.com',
                   icon: Icons.email_outlined,
                   controller: emailController,
+                  textColor: subtextColor,
+                  fillColor: fieldFillColor,
+                  fieldTextStyle: fieldTextStyle,
+                  fieldHintStyle: fieldHintStyle,
                 ),
 
                 const Spacer(),
@@ -135,21 +150,27 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     required String hint,
     required IconData icon,
     required TextEditingController controller,
+    required Color textColor,
+    required Color fillColor,
+    required TextStyle fieldTextStyle,
+    required TextStyle fieldHintStyle,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
             style:
-            const TextStyle(fontSize: 14, color: Color(0xFF7A7A7A))),
+            TextStyle(fontSize: 14, color: textColor)),
         const SizedBox(height: 6),
         TextField(
           controller: controller,
+          style: fieldTextStyle,
           decoration: InputDecoration(
             hintText: hint,
-            prefixIcon: Icon(icon),
+            hintStyle: fieldHintStyle,
+            prefixIcon: Icon(icon, color: textColor),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: fillColor,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
               borderSide: BorderSide.none,

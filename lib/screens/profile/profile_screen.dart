@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mindease/models/user_model.dart';
 import 'package:mindease/services/auth_service.dart';
+import 'package:mindease/services/stress_history_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -51,19 +52,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .collection('diary_entries')
           .get();
 
-      // Try to get latest stress value from user doc or diary entries
-      String stress = '—';
-      final userDoc = await FirebaseFirestore.instance
+      // Compute real average stress from stress_history
+      String stress = 'No data yet';
+      final historySnap = await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
+          .collection('stress_history')
           .get();
-      if (userDoc.exists && userDoc.data() != null) {
-        final data = userDoc.data()!;
-        if (data.containsKey('latestStress')) {
-          final val = data['latestStress'];
-          if (val != null) {
-            stress = '${val.toString()}%';
+
+      if (historySnap.docs.isNotEmpty) {
+        double totalStress = 0;
+        int count = 0;
+        for (final doc in historySnap.docs) {
+          final data = doc.data();
+          final stressVal = StressHistoryService.computeStress(data);
+          if (stressVal > 0) {
+            totalStress += stressVal;
+            count++;
           }
+        }
+        if (count > 0) {
+          final avg = totalStress / count;
+          stress = '${avg.toStringAsFixed(1)}%';
         }
       }
 
@@ -124,11 +134,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
+            colors: isDark
+                ? const [Color(0xFF0D0D1A), Color(0xFF1A1A2E)]
+                : const [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -144,7 +161,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: IconButton(
-                          icon: const Icon(Icons.arrow_back),
+                          icon: Icon(Icons.arrow_back, color: textColor),
                           onPressed: () => Navigator.pop(context),
                         ),
                       ),
@@ -184,7 +201,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       // Email (real)
                       Text(
                         _user?.email ?? FirebaseAuth.instance.currentUser?.email ?? '—',
-                        style: const TextStyle(color: Colors.grey),
+                        style: TextStyle(color: subtextColor),
                       ),
 
                       const SizedBox(height: 20),
@@ -193,7 +210,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: cardColor,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -271,30 +288,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  static Widget _infoTile({
+  Widget _infoTile({
     required IconData icon,
     required String title,
     required String value,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
-          Icon(icon),
+          Icon(icon, color: textColor),
           const SizedBox(width: 12),
           Text(
             title,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: TextStyle(fontWeight: FontWeight.w600, color: textColor),
           ),
           const Spacer(),
           Text(
             value,
-            style: const TextStyle(color: Colors.grey),
+            style: TextStyle(color: subtextColor),
           ),
         ],
       ),

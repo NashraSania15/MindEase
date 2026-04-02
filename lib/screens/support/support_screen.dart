@@ -13,11 +13,18 @@ class SupportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
+            colors: isDark
+                ? const [Color(0xFF0D0D1A), Color(0xFF1A1A2E)]
+                : const [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -32,14 +39,15 @@ class SupportScreen extends StatelessWidget {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back),
+                      icon: Icon(Icons.arrow_back, color: textColor),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    const Text(
+                    Text(
                       'Support & Therapy',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
+                        color: textColor,
                       ),
                     ),
                   ],
@@ -47,11 +55,11 @@ class SupportScreen extends StatelessWidget {
 
                 const SizedBox(height: 6),
 
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(left: 8),
                   child: Text(
                     'Choose the support that feels right for you',
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: subtextColor),
                   ),
                 ),
 
@@ -200,7 +208,7 @@ class SupportScreen extends StatelessWidget {
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: cardColor,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
@@ -253,7 +261,7 @@ class SupportScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFE1E1),
+                    color: isDark ? const Color(0xFF2C1A1A) : const Color(0xFFFFE1E1),
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Column(
@@ -307,14 +315,14 @@ class SupportScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: cardColor,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Text(
+                  child: Text(
                     '💚 This app provides support but is not a substitute for '
                     'professional medical advice, diagnosis, or treatment. '
                     'Always seek the advice of qualified health providers.',
-                    style: TextStyle(fontSize: 12),
+                    style: TextStyle(fontSize: 12, color: textColor),
                   ),
                 ),
               ],
@@ -344,13 +352,18 @@ class SupportScreen extends StatelessWidget {
     required String subtitle,
     required String number,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+
     return GestureDetector(
       onTap: () => _makeCall(number),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardColor,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -362,10 +375,10 @@ class SupportScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title,
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                      style: TextStyle(fontWeight: FontWeight.w600, color: textColor)),
                   Text(subtitle,
-                      style: const TextStyle(
-                          color: Colors.grey, fontSize: 12)),
+                      style: TextStyle(
+                          color: subtextColor, fontSize: 12)),
                   const SizedBox(height: 2),
                   Text(
                     number,
@@ -381,8 +394,8 @@ class SupportScreen extends StatelessWidget {
             Container(
               height: 36,
               width: 36,
-              decoration: const BoxDecoration(
-                color: Color(0xFFEAFBF6),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1A2E2A) : const Color(0xFFEAFBF6),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.call,

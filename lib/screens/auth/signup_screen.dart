@@ -19,8 +19,6 @@ class _SignupScreenState extends State<SignupScreen> {
   bool passwordVisible = false;
   bool confirmPasswordVisible = false;
 
-//TextField
-
   bool isLoading = false;
   @override
   void dispose() {
@@ -69,9 +67,11 @@ class _SignupScreenState extends State<SignupScreen> {
       await AuthService().signup(name: name, email: email, password: password);
 
       if (!mounted) return;
-      Navigator.pushReplacement(
+      // Replace entire stack so user can't go back to signup
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const MainScreen()),
+        (route) => false,
       );
     } catch (e) {
       if (!mounted) return;
@@ -86,11 +86,21 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF4A4A4A);
+    final subtextColor = isDark ? Colors.grey.shade400 : const Color(0xFF7A7A7A);
+    final fieldFillColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final fieldTextStyle = TextStyle(color: isDark ? Colors.white : Colors.black87);
+    final fieldHintStyle = TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey);
+    final canPop = Navigator.of(context).canPop();
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFEDE7F6), Color(0xFFE0F2F1)],
+            colors: isDark
+                ? const [Color(0xFF0D0D1A), Color(0xFF1A1A2E)]
+                : const [Color(0xFFEDE7F6), Color(0xFFE0F2F1)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -102,13 +112,14 @@ class _SignupScreenState extends State<SignupScreen> {
               children: [
                 const SizedBox(height: 10),
 
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () => Navigator.pop(context),
+                if (canPop)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: Icon(Icons.arrow_back, color: textColor),
+                      onPressed: () => Navigator.pop(context),
+                    ),
                   ),
-                ),
 
                 const SizedBox(height: 10),
 
@@ -126,22 +137,22 @@ class _SignupScreenState extends State<SignupScreen> {
 
                 const SizedBox(height: 20),
 
-                const Text(
+                Text(
                   'Create Your Safe Space',
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF4A4A4A),
+                    color: textColor,
                   ),
                 ),
 
                 const SizedBox(height: 6),
 
-                const Text(
+                Text(
                   "Let's get started with MindEase",
                   style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF7A7A7A),
+                    color: subtextColor,
                   ),
                 ),
 
@@ -152,6 +163,10 @@ class _SignupScreenState extends State<SignupScreen> {
                   hint: 'Enter your name',
                   icon: Icons.person_outline,
                   controller: nameController,
+                  textColor: subtextColor,
+                  fillColor: fieldFillColor,
+                  fieldTextStyle: fieldTextStyle,
+                  fieldHintStyle: fieldHintStyle,
                 ),
 
                 _inputField(
@@ -159,6 +174,10 @@ class _SignupScreenState extends State<SignupScreen> {
                   hint: 'your.email@example.com',
                   icon: Icons.email_outlined,
                   controller: emailController,
+                  textColor: subtextColor,
+                  fillColor: fieldFillColor,
+                  fieldTextStyle: fieldTextStyle,
+                  fieldHintStyle: fieldHintStyle,
                 ),
 
                 _inputField(
@@ -167,9 +186,14 @@ class _SignupScreenState extends State<SignupScreen> {
                   icon: Icons.lock_outline,
                   controller: passwordController,
                   obscure: !passwordVisible,
+                  textColor: subtextColor,
+                  fillColor: fieldFillColor,
+                  fieldTextStyle: fieldTextStyle,
+                  fieldHintStyle: fieldHintStyle,
                   suffixWidget: IconButton(
                     icon: Icon(
                       passwordVisible ? Icons.visibility : Icons.visibility_off,
+                      color: subtextColor,
                     ),
                     onPressed: () {
                       setState(() {
@@ -186,11 +210,16 @@ class _SignupScreenState extends State<SignupScreen> {
                   icon: Icons.lock_outline,
                   controller: confirmPasswordController,
                   obscure: !confirmPasswordVisible,
+                  textColor: subtextColor,
+                  fillColor: fieldFillColor,
+                  fieldTextStyle: fieldTextStyle,
+                  fieldHintStyle: fieldHintStyle,
                   suffixWidget: IconButton(
                     icon: Icon(
                       confirmPasswordVisible
                           ? Icons.visibility
                           : Icons.visibility_off,
+                      color: subtextColor,
                     ),
                     onPressed: () {
                       setState(() {
@@ -213,7 +242,10 @@ class _SignupScreenState extends State<SignupScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('Already have an account? '),
+                    Text(
+                      'Already have an account? ',
+                      style: TextStyle(color: subtextColor),
+                    ),
                     GestureDetector(
                       onTap: () {
                         Navigator.pushReplacement(
@@ -248,6 +280,10 @@ class _SignupScreenState extends State<SignupScreen> {
     required String hint,
     required IconData icon,
     required TextEditingController controller,
+    required Color textColor,
+    required Color fillColor,
+    required TextStyle fieldTextStyle,
+    required TextStyle fieldHintStyle,
     bool obscure = false,
     Widget? suffixWidget,
   }) {
@@ -259,17 +295,19 @@ class _SignupScreenState extends State<SignupScreen> {
         children: [
           Text(label,
               style:
-              const TextStyle(fontSize: 14, color: Color(0xFF7A7A7A))),
+              TextStyle(fontSize: 14, color: textColor)),
           const SizedBox(height: 6),
           TextField(
             controller: controller,
             obscureText: obscure,
+            style: fieldTextStyle,
             decoration: InputDecoration(
               hintText: hint,
-              prefixIcon: Icon(icon),
+              hintStyle: fieldHintStyle,
+              prefixIcon: Icon(icon, color: textColor),
               suffixIcon: suffixWidget,
               filled: true,
-              fillColor: Colors.white,
+              fillColor: fillColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(18),
                 borderSide: BorderSide.none,

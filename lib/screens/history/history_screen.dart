@@ -16,11 +16,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
+            colors: isDark
+                ? const [Color(0xFF0D0D1A), Color(0xFF1A1A2E)]
+                : const [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -45,9 +52,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Track how your mood and stress change over time',
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: subtextColor),
                     ),
 
                     const SizedBox(height: 20),
@@ -56,7 +63,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: cardColor,
                         borderRadius: BorderRadius.circular(24),
                       ),
                       child: Row(
@@ -149,24 +156,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
     required List<_ChartPoint> points,
     required String Function(DateTime) labelFormatter,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+
     return Container(
       height: 220,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: textColor)),
           const SizedBox(height: 12),
           Expanded(
             child: points.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'No data yet',
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: subtextColor),
                     ),
                   )
                 : _SimpleLineChart(
@@ -306,6 +318,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   List<Widget> _buildWeeklySummaries(
       List<QueryDocumentSnapshot<Map<String, dynamic>>> allDocs) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final summaries = <Widget>[];
@@ -343,7 +360,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: cardColor,
             borderRadius: BorderRadius.circular(18),
           ),
           child: Row(
@@ -354,11 +371,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    Text(label, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: textColor)),
                     const SizedBox(height: 4),
                     Text(
                       '${weekDocs.length} entries · Avg ${avg.toStringAsFixed(0)}%',
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      style: TextStyle(color: subtextColor, fontSize: 12),
                     ),
                   ],
                 ),
@@ -402,6 +419,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   // ─────────────────────────── SHARED WIDGETS ────────────────────────────────
 
   Widget _toggleButton(String text, int index) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isActive = selectedTab == index;
     return Expanded(
       child: GestureDetector(
@@ -416,7 +434,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: Text(
               text,
               style: TextStyle(
-                color: isActive ? Colors.white : Colors.grey,
+                color: isActive ? Colors.white : (isDark ? Colors.white70 : Colors.grey),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -431,11 +449,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
     required String mood,
     required String stress,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
@@ -443,7 +466,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Expanded(
             child: Text(
               date,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: textColor),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -452,7 +475,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           const SizedBox(width: 8),
           Text(
             stress,
-            style: const TextStyle(color: Colors.grey, fontSize: 13),
+            style: TextStyle(color: subtextColor, fontSize: 13),
           ),
         ],
       ),
@@ -645,7 +668,7 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E2C) : Colors.white,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
@@ -654,15 +677,16 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             title,
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
+            style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey),
           ),
         ],
       ),

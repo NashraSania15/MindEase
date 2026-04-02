@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/face_analysis_service.dart';
 import '../../services/stress_history_service.dart';
+import '../../services/combined_stress_service.dart';
 
 class FaceAnalysisScreen extends StatefulWidget {
   const FaceAnalysisScreen({super.key});
@@ -62,6 +63,11 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
 
     try {
       final result = await FaceAnalysisService.analyzeFace(_imageFile!);
+      // Update combined stress tracker
+      CombinedStressService.instance.updateFace(
+        result.stressLevel,
+        emotion: result.emotion,
+      );
       setState(() {
         _result = result;
         _isLoading = false;
@@ -81,8 +87,12 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
     setState(() => _isSaving = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
+      final combined = CombinedStressService.instance;
       await StressHistoryService.saveStressResult(
         faceStress: _result!.stressLevel,
+        voiceStress: combined.voiceStress,
+        textStress: combined.textStress,
+        emotion: _result!.emotion,
       );
       if (mounted) {
         messenger.showSnackBar(
@@ -156,13 +166,20 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+
     // Dynamic gradient based on result
     List<Color> bgGradient;
     if (_result != null) {
       final color = _stressColor(_result!.stressLevel);
       bgGradient = [color.withValues(alpha: 0.12), color.withValues(alpha: 0.04)];
     } else {
-      bgGradient = const [Color(0xFFFFE5DC), Color(0xFFFFF1EC)];
+      bgGradient = isDark
+          ? const [Color(0xFF0D0D1A), Color(0xFF1A1A2E)]
+          : const [Color(0xFFFFE5DC), Color(0xFFFFF1EC)];
     }
 
     return Scaffold(
@@ -183,14 +200,15 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back),
+                      icon: Icon(Icons.arrow_back, color: textColor),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    const Text(
+                    Text(
                       'Face Analysis',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
+                        color: textColor,
                       ),
                     ),
                   ],
@@ -279,17 +297,17 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
 
                 // Loading indicator
                 if (_isLoading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
                     child: Column(
                       children: [
-                        CircularProgressIndicator(
+                        const CircularProgressIndicator(
                           color: Color(0xFF7AD7C1),
                         ),
-                        SizedBox(height: 12),
+                        const SizedBox(height: 12),
                         Text(
                           'Analyzing your face…',
-                          style: TextStyle(color: Colors.grey),
+                          style: TextStyle(color: subtextColor),
                         ),
                       ],
                     ),
@@ -311,6 +329,11 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
   // ── Result UI (dynamic) ────────────────────────────────────────────────────
 
   Widget _resultSection(FaceAnalysisResult result) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+
     final stressValue = result.stressLevel.clamp(0, 100).toDouble();
     final color = _stressColor(stressValue);
     final stressLbl = _stressLabel(stressValue);
@@ -323,7 +346,7 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: cardColor,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
           ),
@@ -331,9 +354,9 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Title
-              const Text(
+              Text(
                 '🧠 Face Analysis Result',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textColor),
               ),
 
               const SizedBox(height: 16),
@@ -356,9 +379,9 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'You seem:',
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                          style: TextStyle(color: subtextColor, fontSize: 12),
                         ),
                         Text(
                           stressLbl,
@@ -379,9 +402,9 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
               // Emotion displayed separately
               Text(
                 'Emotion detected: ${result.emotion}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey,
+                  color: subtextColor,
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -392,9 +415,9 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Stress Level',
-                    style: TextStyle(fontWeight: FontWeight.w500),
+                    style: TextStyle(fontWeight: FontWeight.w500, color: textColor),
                   ),
                   Text(
                     '${stressValue.toStringAsFixed(0)}%  •  $stressLbl',
@@ -414,7 +437,7 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
                 child: LinearProgressIndicator(
                   value: stressValue / 100,
                   minHeight: 10,
-                  backgroundColor: Colors.grey.shade200,
+                  backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
                   valueColor: AlwaysStoppedAnimation<Color>(color),
                 ),
               ),
@@ -430,7 +453,7 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
                 ),
                 child: Text(
                   _advice(stressValue, result.emotion),
-                  style: const TextStyle(fontSize: 14, height: 1.5),
+                  style: TextStyle(fontSize: 14, height: 1.5, color: textColor),
                 ),
               ),
             ],
@@ -481,13 +504,14 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
   // ── Error UI ───────────────────────────────────────────────────────────────
 
   Widget _errorSection(String message) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFEBEE),
+        color: isDark ? const Color(0xFF3A1A1A) : const Color(0xFFFFEBEE),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.red.shade200),
+        border: Border.all(color: isDark ? Colors.red.shade800 : Colors.red.shade200),
       ),
       child: Row(
         children: [
@@ -511,12 +535,13 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
     required String label,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 52,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1E1E2C) : Colors.white,
           borderRadius: BorderRadius.circular(18),
         ),
         child: Row(
@@ -526,7 +551,10 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
             const SizedBox(width: 8),
             Text(
               label,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
             ),
           ],
         ),
@@ -560,18 +588,22 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
   }
 
   Widget _secondaryButton(String text, {VoidCallback? onTap}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 52,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1E1E2C) : Colors.white,
         ),
         child: Center(
           child: Text(
             text,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
           ),
         ),
       ),

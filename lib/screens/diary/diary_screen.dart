@@ -391,6 +391,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
   // ── Helper: shared PIN field styling ──────────────────────────────────────
 
   Widget _pinField(TextEditingController ctrl, String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return TextField(
       controller: ctrl,
       keyboardType: TextInputType.number,
@@ -400,7 +401,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
         labelText: label,
         counterText: '',
         filled: true,
-        fillColor: const Color(0xFFF5F5F5),
+        fillColor: isDark ? const Color(0xFF2A2A3A) : const Color(0xFFF5F5F5),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -413,11 +414,17 @@ class _DiaryScreenState extends State<DiaryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
+            colors: isDark
+                ? const [Color(0xFF0D0D1A), Color(0xFF1A1A2E)]
+                : const [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -431,14 +438,15 @@ class _DiaryScreenState extends State<DiaryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      children: const [
-                        Icon(Icons.arrow_back_ios, size: 18),
+                      children: [
+                        Icon(Icons.arrow_back_ios, size: 18, color: textColor),
                         SizedBox(width: 8),
                         Text(
                           'My Private Diary',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
+                            color: textColor,
                           ),
                         ),
                       ],
@@ -452,7 +460,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: cardColor,
                         borderRadius: BorderRadius.circular(24),
                       ),
                       child: Row(
@@ -480,6 +488,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
   // ─────────────────────────── WRITE TAB ────────────────────────────────────
 
   Widget _buildWriteTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
     final now = DateTime.now();
     final dateStr = DateFormat('EEEE, MMMM d, yyyy').format(now);
 
@@ -492,16 +503,16 @@ class _DiaryScreenState extends State<DiaryScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardColor,
               borderRadius: BorderRadius.circular(18),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(dateStr,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                    style: TextStyle(fontWeight: FontWeight.w600, color: textColor)),
                 const SizedBox(height: 8),
-                const Text('How are you feeling today?'),
+                Text('How are you feeling today?', style: TextStyle(color: textColor)),
               ],
             ),
           ),
@@ -512,7 +523,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardColor,
               borderRadius: BorderRadius.circular(18),
             ),
             child: Row(
@@ -533,7 +544,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
             height: 190,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF8E1),
+              color: isDark ? const Color(0xFF2A2A1A) : const Color(0xFFFFF8E1),
               borderRadius: BorderRadius.circular(18),
             ),
             child: TextField(
@@ -588,6 +599,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
   // ─────────────────────────── HISTORY TAB ──────────────────────────────────
 
   Widget _buildHistoryTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+
     if (_isCheckingPin) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -688,7 +702,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: cardColor,
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: Column(
@@ -736,8 +750,8 @@ class _DiaryScreenState extends State<DiaryScreen> {
                           Text(text,
                               maxLines: 3,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: Color(0xFF555555))),
+                              style: TextStyle(
+                                  color: isDark ? Colors.grey.shade400 : const Color(0xFF555555))),
                         ],
                       ),
                     ),
@@ -754,6 +768,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
   // ─────────────────────────── PIN SCREEN ───────────────────────────────────
 
   Widget _buildPinScreen() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 40),
       child: Column(
@@ -774,10 +791,10 @@ class _DiaryScreenState extends State<DiaryScreen> {
           const SizedBox(height: 20),
           Text(
             _isSettingPin ? 'Set Your Diary PIN' : 'Enter Diary PIN',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF4A4A4A),
+              color: textColor,
             ),
           ),
           const SizedBox(height: 8),
@@ -803,7 +820,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
             decoration: InputDecoration(
               counterText: '',
               filled: true,
-              fillColor: Colors.white,
+              fillColor: isDark ? const Color(0xFF2A2A3A) : Colors.white,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(18),
                 borderSide: BorderSide.none,
@@ -897,6 +914,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
   }
 
   Widget _mood(String emoji, String label, int index) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final selected = selectedMood == index;
     return GestureDetector(
       onTap: () => setState(() => selectedMood = index),
@@ -906,7 +924,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
           const SizedBox(height: 4),
           Text(label,
               style: TextStyle(
-                color: selected ? Colors.black : Colors.grey,
+                color: selected
+                    ? (isDark ? Colors.white : Colors.black)
+                    : Colors.grey,
                 fontSize: 12,
               )),
         ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'wellness_detail_screen.dart';
+import 'breathing_meditation_screen.dart';
 
 /// Data model for a wellness issue/category.
 class WellnessCategory {
@@ -7,6 +8,7 @@ class WellnessCategory {
   final String title;
   final String description;
   final Color accentColor;
+  final String tag; // 'calm', 'anxiety', 'panic', or 'general'
   final List<WellnessTip> exercises;
   final List<WellnessTip> tips;
   final List<WellnessTip> suggestions;
@@ -16,6 +18,7 @@ class WellnessCategory {
     required this.title,
     required this.description,
     required this.accentColor,
+    this.tag = 'general',
     required this.exercises,
     required this.tips,
     required this.suggestions,
@@ -44,6 +47,7 @@ final List<WellnessCategory> wellnessCategories = [
     title: 'Calmness',
     description: 'Find your inner peace',
     accentColor: const Color(0xFF9BE7C4),
+    tag: 'calm',
     exercises: const [
       WellnessTip(icon: '🌬️', title: 'Deep Breathing', detail: 'Inhale slowly for 4 seconds, hold for 4, exhale for 6. Repeat 5–10 times to activate your body\'s relaxation response.'),
       WellnessTip(icon: '🧘', title: 'Body Scan Meditation', detail: 'Lie down comfortably. Starting from your toes, slowly bring attention to each body part, releasing tension as you go. Spend 10–15 minutes.'),
@@ -66,6 +70,7 @@ final List<WellnessCategory> wellnessCategories = [
     title: 'Stress Relief',
     description: 'Let go of tension',
     accentColor: const Color(0xFF81D4A2),
+    tag: 'calm',
     exercises: const [
       WellnessTip(icon: '💪', title: 'Progressive Muscle Relaxation', detail: 'Tense each muscle group for 5 seconds, then release. Start from your feet and work up to your face. This contrast helps your body truly relax.'),
       WellnessTip(icon: '🏃', title: '10-Minute Walk', detail: 'Get outside and walk briskly. Movement releases endorphins — your body\'s natural stress fighters.'),
@@ -88,6 +93,7 @@ final List<WellnessCategory> wellnessCategories = [
     title: 'Anxiety',
     description: 'Ease your anxious mind',
     accentColor: const Color(0xFFA8D8EA),
+    tag: 'anxiety',
     exercises: const [
       WellnessTip(icon: '✋', title: '5-4-3-2-1 Grounding', detail: 'Notice 5 things you see, 4 you can touch, 3 you hear, 2 you smell, 1 you taste. This brings you back to the present moment.'),
       WellnessTip(icon: '🫧', title: 'Box Breathing', detail: 'Inhale for 4 seconds, hold 4, exhale 4, hold 4. Repeat 4 times. This technique is used by Navy SEALs to stay calm under pressure.'),
@@ -110,6 +116,7 @@ final List<WellnessCategory> wellnessCategories = [
     title: 'Focus',
     description: 'Sharpen your concentration',
     accentColor: const Color(0xFFFFD59E),
+    tag: 'general',
     exercises: const [
       WellnessTip(icon: '🍅', title: 'Pomodoro Technique', detail: 'Work for 25 minutes with full focus, then take a 5-minute break. After 4 cycles, take a longer 15–20 minute break.'),
       WellnessTip(icon: '👁️', title: 'Candle Gazing (Trataka)', detail: 'Stare at a candle flame for 2–3 minutes without blinking. This ancient technique strengthens mental focus and eye muscles.'),
@@ -132,6 +139,7 @@ final List<WellnessCategory> wellnessCategories = [
     title: 'Sleep',
     description: 'Drift into restful sleep',
     accentColor: const Color(0xFFB8B5E0),
+    tag: 'calm',
     exercises: const [
       WellnessTip(icon: '🌬️', title: '4-7-8 Breathing', detail: 'Inhale for 4 seconds, hold for 7, exhale slowly for 8. This activates the parasympathetic nervous system and signals your body to sleep.'),
       WellnessTip(icon: '🦶', title: 'Toe Tensing Exercise', detail: 'While lying in bed, curl your toes tightly for 5 seconds, then release. Repeat 10 times. This draws tension away from your mind.'),
@@ -154,6 +162,7 @@ final List<WellnessCategory> wellnessCategories = [
     title: 'Headache Relief',
     description: 'Soothe head tension',
     accentColor: const Color(0xFFF5C6C6),
+    tag: 'general',
     exercises: const [
       WellnessTip(icon: '👐', title: 'Temple Massage', detail: 'Place your fingertips on your temples and gently massage in small circles for 2–3 minutes. Apply light to medium pressure.'),
       WellnessTip(icon: '🧊', title: 'Cold Compress', detail: 'Apply a cold cloth or ice pack wrapped in a towel to your forehead for 15 minutes. Cold constricts blood vessels and numbs the pain.'),
@@ -176,6 +185,7 @@ final List<WellnessCategory> wellnessCategories = [
     title: 'Peace',
     description: 'Embrace tranquility',
     accentColor: const Color(0xFFC5E1A5),
+    tag: 'calm',
     exercises: const [
       WellnessTip(icon: '🕊️', title: 'Loving-Kindness Meditation', detail: 'Silently repeat: "May I be happy. May I be healthy. May I be at peace." Then extend these wishes to others. Practice for 10 minutes.'),
       WellnessTip(icon: '🌳', title: 'Nature Walk Meditation', detail: 'Walk slowly in nature, paying attention to each step. Feel the ground beneath your feet. Notice sounds, smells, and sights mindfully.'),
@@ -198,6 +208,7 @@ final List<WellnessCategory> wellnessCategories = [
     title: 'Happiness',
     description: 'Cultivate joy within',
     accentColor: const Color(0xFFFFE082),
+    tag: 'general',
     exercises: const [
       WellnessTip(icon: '💃', title: 'Dance for 5 Minutes', detail: 'Put on your favorite upbeat song and dance freely. Movement combined with music is one of the fastest mood boosters.'),
       WellnessTip(icon: '😄', title: 'Smiling Meditation', detail: 'Sit quietly and place a gentle smile on your face. Even a "fake" smile can trick your brain into releasing happy chemicals.'),
@@ -220,6 +231,7 @@ final List<WellnessCategory> wellnessCategories = [
     title: 'Motivation',
     description: 'Ignite your drive',
     accentColor: const Color(0xFFFFAB91),
+    tag: 'general',
     exercises: const [
       WellnessTip(icon: '📝', title: 'Write Your "Why"', detail: 'Write down WHY your goal matters to you. When motivation fades, reconnecting with your purpose reignites the fire.'),
       WellnessTip(icon: '🏋️', title: 'Start with 2 Minutes', detail: 'Tell yourself "I\'ll just do 2 minutes." Starting is the hardest part — once you begin, momentum takes over.'),
@@ -242,6 +254,7 @@ final List<WellnessCategory> wellnessCategories = [
     title: 'Gratitude',
     description: 'Appreciate life\'s blessings',
     accentColor: const Color(0xFFCE93D8),
+    tag: 'calm',
     exercises: const [
       WellnessTip(icon: '📓', title: '3 Good Things', detail: 'Every evening, write down 3 good things that happened today — no matter how small. This rewires your brain to notice positivity.'),
       WellnessTip(icon: '💌', title: 'Gratitude Letter', detail: 'Write a letter to someone who made a difference in your life. You can deliver it or keep it. The act of writing is the healing part.'),
@@ -264,6 +277,7 @@ final List<WellnessCategory> wellnessCategories = [
     title: 'Loneliness',
     description: 'Feel connected again',
     accentColor: const Color(0xFFB3E5FC),
+    tag: 'anxiety',
     exercises: const [
       WellnessTip(icon: '📞', title: 'Call an Old Friend', detail: 'Reach out to someone you haven\'t spoken to in a while. A 10-minute call can dissolve feelings of isolation.'),
       WellnessTip(icon: '✍️', title: 'Journal Your Feelings', detail: 'Write about how you\'re feeling without judgment. Putting emotions into words helps process loneliness instead of suppressing it.'),
@@ -286,6 +300,7 @@ final List<WellnessCategory> wellnessCategories = [
     title: 'Anger Management',
     description: 'Cool down & respond wisely',
     accentColor: const Color(0xFFEF9A9A),
+    tag: 'panic',
     exercises: const [
       WellnessTip(icon: '🔟', title: 'Count to 10 Slowly', detail: 'When anger rises, count slowly to 10 before reacting. This pause allows your rational brain to catch up with your emotions.'),
       WellnessTip(icon: '🧊', title: 'Splash Cold Water', detail: 'Splash cold water on your face or hold an ice cube. The cold activates the dive reflex and instantly lowers your heart rate.'),
@@ -301,20 +316,90 @@ final List<WellnessCategory> wellnessCategories = [
       WellnessTip(icon: '🎵', title: 'Listen to Calming Music', detail: 'Slow, soothing music can lower blood pressure and heart rate. Build a "cool down" playlist for tense moments.'),
     ],
   ),
+
+  // ───────── Panic Attack ─────────
+  WellnessCategory(
+    emoji: '🆘',
+    title: 'Panic Attack',
+    description: 'Immediate relief techniques',
+    accentColor: const Color(0xFFFF8A80),
+    tag: 'panic',
+    exercises: const [
+      WellnessTip(icon: '🫁', title: 'Slow Breathing', detail: 'Breathe in for 4 counts, out for 6 counts. Focus only on the breath. This slows your heart rate and signals safety to your brain.'),
+      WellnessTip(icon: '🧊', title: 'Hold Ice or Cold Water', detail: 'Hold ice cubes or splash cold water on your wrists and face. The shock of cold redirects your nervous system away from panic.'),
+      WellnessTip(icon: '✋', title: '5-4-3-2-1 Grounding', detail: 'Name 5 things you see, 4 you touch, 3 you hear, 2 you smell, 1 you taste. This grounds you firmly in the present moment.'),
+    ],
+    tips: const [
+      WellnessTip(icon: '🗣️', title: 'Talk to Yourself Kindly', detail: 'Say: "This will pass. I am safe. My body is reacting, but I am not in danger." Reassurance calms the fight-or-flight response.'),
+      WellnessTip(icon: '🪑', title: 'Sit Down Somewhere Safe', detail: 'Find a safe spot, sit down, close your eyes if possible. Reducing stimulation helps your body de-escalate.'),
+      WellnessTip(icon: '📞', title: 'Call Someone You Trust', detail: 'Hearing a calm, familiar voice during a panic attack can be incredibly grounding and reassuring.'),
+    ],
+    suggestions: const [
+      WellnessTip(icon: '🧸', title: 'Hold a Comfort Object', detail: 'A soft blanket, stress ball, or familiar object can ground you through touch and provide a sense of safety.'),
+      WellnessTip(icon: '🎧', title: 'Listen to a Guided Meditation', detail: 'A calm voice walking you through relaxation can override the panic signals. Keep a favorite meditation saved on your phone.'),
+    ],
+  ),
+];
+
+// ─── Tab filter labels ───
+const List<Map<String, String>> _categoryTabs = [
+  {'key': 'all', 'label': 'All', 'emoji': '🌟'},
+  {'key': 'calm', 'label': 'Calm', 'emoji': '🌊'},
+  {'key': 'anxiety', 'label': 'Anxiety', 'emoji': '🦋'},
+  {'key': 'panic', 'label': 'Panic', 'emoji': '🆘'},
+  {'key': 'general', 'label': 'General', 'emoji': '🎯'},
 ];
 
 // ─── Categories Screen ───
 
-class MeditationScreen extends StatelessWidget {
+class MeditationScreen extends StatefulWidget {
   const MeditationScreen({super.key});
 
   @override
+  State<MeditationScreen> createState() => _MeditationScreenState();
+}
+
+class _MeditationScreenState extends State<MeditationScreen>
+    with SingleTickerProviderStateMixin {
+  String _selectedTab = 'all';
+  late AnimationController _fadeCtrl;
+  late Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeIn);
+    _fadeCtrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _fadeCtrl.dispose();
+    super.dispose();
+  }
+
+  List<WellnessCategory> get _filteredCategories {
+    if (_selectedTab == 'all') return wellnessCategories;
+    return wellnessCategories.where((c) => c.tag == _selectedTab).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
+            colors: isDark
+                ? [const Color(0xFF0D0D1A), const Color(0xFF1A1A2E)]
+                : [const Color(0xFFF7F7FB), const Color(0xFFEFF6F5)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -328,14 +413,15 @@ class MeditationScreen extends StatelessWidget {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back),
+                      icon: Icon(Icons.arrow_back, color: textColor),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    const Text(
+                    Text(
                       'Meditation & Wellness',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
+                        color: textColor,
                       ),
                     ),
                   ],
@@ -349,8 +435,17 @@ class MeditationScreen extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF9BE7C4),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF9BE7C4), Color(0xFF7AD7C1)],
+                    ),
                     borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF9BE7C4).withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: const Row(
                     children: [
@@ -373,15 +468,155 @@ class MeditationScreen extends StatelessWidget {
 
               const SizedBox(height: 12),
 
+              // ── Breathing exercise button ──
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const BreathingMeditationScreen(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 14, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: const Color(0xFF9BE7C4).withOpacity(0.3),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          height: 40,
+                          width: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFF9BE7C4).withOpacity(0.3),
+                                const Color(0xFF7AD7C1).withOpacity(0.1),
+                              ],
+                            ),
+                          ),
+                          child: const Center(
+                            child: Text('🫁', style: TextStyle(fontSize: 20)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Breathing Exercise',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: textColor,
+                                ),
+                              ),
+                              Text(
+                                'Guided deep breathing animation',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark
+                                      ? Colors.grey.shade400
+                                      : Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.play_circle_fill,
+                            color: const Color(0xFF9BE7C4), size: 32),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // ── Category filter tabs ──
+              SizedBox(
+                height: 40,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemCount: _categoryTabs.length,
+                  itemBuilder: (context, index) {
+                    final tab = _categoryTabs[index];
+                    final isSelected = _selectedTab == tab['key'];
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() => _selectedTab = tab['key']!);
+                        _fadeCtrl.reset();
+                        _fadeCtrl.forward();
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          color: isSelected
+                              ? const Color(0xFF9BE7C4)
+                              : (isDark
+                                  ? const Color(0xFF1E1E2C)
+                                  : Colors.white),
+                          border: isSelected
+                              ? null
+                              : Border.all(
+                                  color: Colors.grey.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          '${tab['emoji']} ${tab['label']}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected
+                                ? Colors.white
+                                : (isDark ? Colors.white70 : Colors.black54),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
               // ── Category list ──
               Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: wellnessCategories.length,
-                  itemBuilder: (context, index) {
-                    final cat = wellnessCategories[index];
-                    return _CategoryCard(category: cat);
-                  },
+                child: FadeTransition(
+                  opacity: _fadeAnim,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _filteredCategories.length,
+                    itemBuilder: (context, index) {
+                      final cat = _filteredCategories[index];
+                      return _CategoryCard(
+                        category: cat,
+                        cardColor: cardColor,
+                        textColor: textColor,
+                      );
+                    },
+                  ),
                 ),
               ),
             ],
@@ -394,11 +629,18 @@ class MeditationScreen extends StatelessWidget {
 
 class _CategoryCard extends StatelessWidget {
   final WellnessCategory category;
+  final Color cardColor;
+  final Color textColor;
 
-  const _CategoryCard({required this.category});
+  const _CategoryCard({
+    required this.category,
+    required this.cardColor,
+    required this.textColor,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final totalItems =
         category.exercises.length +
         category.tips.length +
@@ -417,11 +659,11 @@ class _CategoryCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardColor,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -434,7 +676,7 @@ class _CategoryCard extends StatelessWidget {
               height: 50,
               width: 50,
               decoration: BoxDecoration(
-                color: category.accentColor.withOpacity(0.25),
+                color: category.accentColor.withOpacity(isDark ? 0.15 : 0.25),
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -452,17 +694,18 @@ class _CategoryCard extends StatelessWidget {
                 children: [
                   Text(
                     category.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
+                      color: textColor,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     category.description,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey,
+                      color: isDark ? Colors.grey.shade400 : Colors.grey,
                     ),
                   ),
                 ],
@@ -471,10 +714,14 @@ class _CategoryCard extends StatelessWidget {
             // Tip count + arrow
             Text(
               '$totalItems tips',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.grey.shade500 : Colors.grey,
+              ),
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+            Icon(Icons.chevron_right,
+                color: isDark ? Colors.grey.shade500 : Colors.grey, size: 20),
           ],
         ),
       ),

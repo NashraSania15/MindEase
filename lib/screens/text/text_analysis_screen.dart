@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/text_analysis_service.dart';
 import '../../services/stress_history_service.dart';
+import '../../services/combined_stress_service.dart';
 
 class TextAnalysisScreen extends StatefulWidget {
   const TextAnalysisScreen({super.key});
@@ -37,6 +38,11 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
 
     try {
       final result = await TextAnalysisService.analyzeText(text);
+      // Update combined stress tracker
+      CombinedStressService.instance.updateText(
+        result.stressLevel,
+        emotion: result.emotion,
+      );
       setState(() {
         _result = result;
         _isLoading = false;
@@ -56,8 +62,12 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
     setState(() => _isSaving = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
+      final combined = CombinedStressService.instance;
       await StressHistoryService.saveStressResult(
+        faceStress: combined.faceStress,
+        voiceStress: combined.voiceStress,
         textStress: _result!.stressLevel,
+        emotion: _result!.emotion,
       );
       if (mounted) {
         messenger.showSnackBar(
@@ -136,11 +146,18 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
   // ── Build ───────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFE6F7F6), Color(0xFFF1FBFA)],
+            colors: isDark
+                ? const [Color(0xFF0D0D1A), Color(0xFF1A1A2E)]
+                : const [Color(0xFFE6F7F6), Color(0xFFF1FBFA)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -154,14 +171,15 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back),
+                      icon: Icon(Icons.arrow_back, color: textColor),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    const Text(
+                    Text(
                       'Text Stress Check',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
+                        color: textColor,
                       ),
                     ),
                   ],
@@ -169,9 +187,9 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
 
                 const SizedBox(height: 8),
 
-                const Text(
+                Text(
                   'Type freely. This will analyze stress — not save automatically.',
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(color: subtextColor),
                 ),
 
                 const SizedBox(height: 20),
@@ -180,23 +198,25 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: cardColor,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         "What's on your mind right now?",
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: textColor),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _controller,
                         maxLines: 6,
+                        style: TextStyle(color: textColor),
                         onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: 'Start typing...',
+                          hintStyle: TextStyle(color: subtextColor),
                           border: InputBorder.none,
                         ),
                       ),
@@ -206,7 +226,7 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
                         children: [
                           Text(
                             '${_controller.text.length} characters',
-                            style: const TextStyle(color: Colors.grey),
+                            style: TextStyle(color: subtextColor),
                           ),
                           Text(
                             _controller.text.length >= 10
@@ -237,17 +257,17 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
 
                 // ── Loading indicator ───────────────────────────────────────
                 if (_isLoading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
                     child: Column(
                       children: [
-                        CircularProgressIndicator(
+                        const CircularProgressIndicator(
                           color: Color(0xFF7AD7C1),
                         ),
-                        SizedBox(height: 12),
+                        const SizedBox(height: 12),
                         Text(
                           'Analyzing your text…',
-                          style: TextStyle(color: Colors.grey),
+                          style: TextStyle(color: subtextColor),
                         ),
                       ],
                     ),
@@ -269,6 +289,11 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
   // ── Result UI (dynamic) ─────────────────────────────────────────────────────
 
   Widget _resultSection(TextAnalysisResult result) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+
     final stressValue = result.stressLevel.clamp(0, 100).toDouble();
     final color = _stressColor(stressValue);
     final stressLbl = _stressLabel(stressValue);
@@ -280,7 +305,7 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: cardColor,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
           ),
@@ -288,9 +313,9 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Title
-              const Text(
+              Text(
                 '🧠 Stress Analysis Result',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textColor),
               ),
 
               const SizedBox(height: 16),
@@ -313,9 +338,9 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'You seem:',
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                          style: TextStyle(color: subtextColor, fontSize: 12),
                         ),
                         Text(
                           stressLbl,
@@ -336,9 +361,9 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
               // Emotion displayed separately
               Text(
                 'Emotion detected: ${result.emotion}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey,
+                  color: subtextColor,
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -349,9 +374,9 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Stress Level',
-                    style: TextStyle(fontWeight: FontWeight.w500),
+                    style: TextStyle(fontWeight: FontWeight.w500, color: textColor),
                   ),
                   Text(
                     '${stressValue.toStringAsFixed(0)}%  •  $stressLbl',
@@ -370,7 +395,7 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
                 child: LinearProgressIndicator(
                   value: stressValue / 100,
                   minHeight: 10,
-                  backgroundColor: Colors.grey.shade200,
+                  backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
                   valueColor: AlwaysStoppedAnimation<Color>(color),
                 ),
               ),
@@ -386,7 +411,7 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
                 ),
                 child: Text(
                   _advice(stressValue, result.emotion),
-                  style: const TextStyle(fontSize: 14, height: 1.5),
+                  style: TextStyle(fontSize: 14, height: 1.5, color: textColor),
                 ),
               ),
             ],
@@ -440,13 +465,14 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
   // ── Error UI ────────────────────────────────────────────────────────────────
 
   Widget _errorSection(String message) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFEBEE),
+        color: isDark ? const Color(0xFF3A1A1A) : const Color(0xFFFFEBEE),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.red.shade200),
+        border: Border.all(color: isDark ? Colors.red.shade800 : Colors.red.shade200),
       ),
       child: Row(
         children: [
@@ -470,6 +496,7 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
     bool enabled = true,
     VoidCallback? onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: enabled ? onTap : null,
       child: Container(
@@ -481,7 +508,7 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
             colors: [Color(0xFF9BE7C4), Color(0xFF7AD7C1)],
           )
               : null,
-          color: enabled ? null : Colors.grey.shade300,
+          color: enabled ? null : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
         ),
         child: Center(
           child: Text(
@@ -497,18 +524,22 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
   }
 
   Widget _secondaryButton(String text, {VoidCallback? onTap}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 52,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1E1E2C) : Colors.white,
           borderRadius: BorderRadius.circular(18),
         ),
         child: Center(
           child: Text(
             text,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
           ),
         ),
       ),

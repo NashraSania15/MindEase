@@ -16,8 +16,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final List<_OnboardData> pages = [
     _OnboardData(
-      bgGradient: const LinearGradient(
+      lightGradient: const LinearGradient(
         colors: [Color(0xFFFFE0EC), Color(0xFFF3E5F5)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      darkGradient: const LinearGradient(
+        colors: [Color(0xFF1A0D14), Color(0xFF1A1028)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
@@ -28,8 +33,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       buttonText: 'Continue',
     ),
     _OnboardData(
-      bgGradient: const LinearGradient(
+      lightGradient: const LinearGradient(
         colors: [Color(0xFFE0F7FA), Color(0xFFE8F5E9)],
+      ),
+      darkGradient: const LinearGradient(
+        colors: [Color(0xFF0D1A1A), Color(0xFF0D1A14)],
       ),
       title: 'Track & Heal',
       subtitle:
@@ -38,8 +46,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       buttonText: 'Continue',
     ),
     _OnboardData(
-      bgGradient: const LinearGradient(
+      lightGradient: const LinearGradient(
         colors: [Color(0xFFFFEDE7), Color(0xFFFFEBEE)],
+      ),
+      darkGradient: const LinearGradient(
+        colors: [Color(0xFF1A140D), Color(0xFF1A0D0D)],
       ),
       title: "You're Not Alone",
       subtitle:
@@ -48,8 +59,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       buttonText: 'Continue',
     ),
     _OnboardData(
-      bgGradient: const LinearGradient(
+      lightGradient: const LinearGradient(
         colors: [Color(0xFFEDE7F6), Color(0xFFE0F2F1)],
+      ),
+      darkGradient: const LinearGradient(
+        colors: [Color(0xFF0D0D1A), Color(0xFF1A1A2E)],
       ),
       title: 'MindEase',
       subtitle: 'Your AI Stress Detection Companion',
@@ -124,8 +138,13 @@ class _OnboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF4A4A4A);
+    final subtextColor = isDark ? Colors.grey.shade400 : const Color(0xFF7A7A7A);
+    final gradient = isDark ? data.darkGradient : data.lightGradient;
+
     return Container(
-      decoration: BoxDecoration(gradient: data.bgGradient),
+      decoration: BoxDecoration(gradient: gradient),
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: SafeArea(
         child: Column(
@@ -134,7 +153,8 @@ class _OnboardPage extends StatelessWidget {
               alignment: Alignment.topRight,
               child: TextButton(
                 onPressed: onSkip,
-                child: const Text('Skip', style: TextStyle(fontSize: 16)),
+                child: Text('Skip',
+                    style: TextStyle(fontSize: 16, color: subtextColor)),
               ),
             ),
 
@@ -144,11 +164,13 @@ class _OnboardPage extends StatelessWidget {
               height: 180,
               width: 180,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.7),
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.white.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -163,10 +185,10 @@ class _OnboardPage extends StatelessWidget {
 
             Text(
               data.title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF4A4A4A),
+                color: textColor,
               ),
               textAlign: TextAlign.center,
             ),
@@ -175,9 +197,9 @@ class _OnboardPage extends StatelessWidget {
 
             Text(
               data.subtitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
-                color: Color(0xFF7A7A7A),
+                color: subtextColor,
               ),
               textAlign: TextAlign.center,
             ),
@@ -204,7 +226,9 @@ class _OnboardPage extends StatelessWidget {
                         : null,
                     color: currentIndex == index
                         ? null
-                        : Colors.white.withOpacity(0.6),
+                        : isDark
+                            ? Colors.white.withValues(alpha: 0.2)
+                            : Colors.white.withValues(alpha: 0.6),
                   ),
                 ),
               ),
@@ -237,7 +261,8 @@ class _OnboardPage extends StatelessWidget {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: onSkip,
-                child: const Text('Login'),
+                child: Text('Login',
+                    style: TextStyle(color: subtextColor)),
               ),
             ],
 
@@ -250,7 +275,8 @@ class _OnboardPage extends StatelessWidget {
 }
 
 class _OnboardData {
-  final LinearGradient bgGradient;
+  final LinearGradient lightGradient;
+  final LinearGradient darkGradient;
   final String title;
   final String subtitle;
   final String image;
@@ -258,7 +284,8 @@ class _OnboardData {
   final bool showLogin;
 
   _OnboardData({
-    required this.bgGradient,
+    required this.lightGradient,
+    required this.darkGradient,
     required this.title,
     required this.subtitle,
     required this.image,

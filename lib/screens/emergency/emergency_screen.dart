@@ -24,7 +24,12 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     setState(() => _alertSending = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await _service.sendAlertToAll(_stressLevel);
+      await _service.sendAlertToAllWithWhatsApp(_stressLevel);
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('SOS alert sent to all contacts ✅')),
+        );
+      }
     } catch (_) {
       if (mounted) {
         messenger.showSnackBar(
@@ -40,7 +45,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     setState(() => _alertSending = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await _service.sendAlertToAll(_stressLevel);
+      await _service.sendAlertToAllWithWhatsApp(_stressLevel);
       if (mounted) {
         messenger.showSnackBar(
           const SnackBar(content: Text('Alert sent to all contacts ✅')),
@@ -63,9 +68,84 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     final nameCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
     final relationCtrl = TextEditingController();
-    bool loading = false;
 
-    await showDialog<void>(
+    final saved = await _showContactFormDialog(
+      title: 'Add Emergency Contact',
+      nameCtrl: nameCtrl,
+      phoneCtrl: phoneCtrl,
+      relationCtrl: relationCtrl,
+      onSave: (name, phone, relation) async {
+        await _service.addContact(
+          name: name,
+          phone: phone,
+          relation: relation,
+        );
+      },
+    );
+
+    nameCtrl.dispose();
+    phoneCtrl.dispose();
+    relationCtrl.dispose();
+
+    if (saved == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Contact added ✅')),
+      );
+    }
+  }
+
+  // ─── Edit Contact Dialog ──────────────────────────────────────────────────
+
+  Future<void> _showEditContactDialog({
+    required String contactId,
+    required String currentName,
+    required String currentPhone,
+    required String currentRelation,
+  }) async {
+    final nameCtrl = TextEditingController(text: currentName);
+    final phoneCtrl = TextEditingController(text: currentPhone);
+    final relationCtrl = TextEditingController(text: currentRelation);
+
+    final saved = await _showContactFormDialog(
+      title: 'Edit Contact',
+      nameCtrl: nameCtrl,
+      phoneCtrl: phoneCtrl,
+      relationCtrl: relationCtrl,
+      onSave: (name, phone, relation) async {
+        await _service.updateContact(
+          contactId: contactId,
+          name: name,
+          phone: phone,
+          relation: relation,
+        );
+      },
+    );
+
+    nameCtrl.dispose();
+    phoneCtrl.dispose();
+    relationCtrl.dispose();
+
+    if (saved == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Contact updated ✅')),
+      );
+    }
+  }
+
+  // ─── Reusable Contact Form Dialog ─────────────────────────────────────────
+
+  Future<bool?> _showContactFormDialog({
+    required String title,
+    required TextEditingController nameCtrl,
+    required TextEditingController phoneCtrl,
+    required TextEditingController relationCtrl,
+    required Future<void> Function(String name, String phone, String relation)
+        onSave,
+  }) async {
+    bool loading = false;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
@@ -75,30 +155,30 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
             return AlertDialog(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18)),
-              title: const Text('Add Emergency Contact'),
+              title: Text(title),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _field(nameCtrl, 'Full Name', Icons.person),
+                    _field(nameCtrl, 'Full Name', Icons.person, isDark: isDark),
                     const SizedBox(height: 12),
                     _field(phoneCtrl, 'Phone Number', Icons.phone,
-                        type: TextInputType.phone),
+                        type: TextInputType.phone, isDark: isDark),
                     const SizedBox(height: 12),
-                    _field(relationCtrl, 'Relation (optional)',
-                        Icons.people),
+                    _field(relationCtrl, 'Relation (optional)', Icons.people,
+                        isDark: isDark),
                     if (errorMsg != null) ...[
                       const SizedBox(height: 8),
                       Text(errorMsg!,
-                          style: const TextStyle(
-                              color: Colors.red, fontSize: 13)),
+                          style:
+                              const TextStyle(color: Colors.red, fontSize: 13)),
                     ],
                   ],
                 ),
               ),
               actions: [
                 TextButton(
-                  onPressed: loading ? null : () => Navigator.pop(ctx),
+                  onPressed: loading ? null : () => Navigator.pop(ctx, false),
                   child: const Text('Cancel'),
                 ),
                 TextButton(
@@ -109,13 +189,17 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                           final phone = phoneCtrl.text.trim();
 
                           if (name.isEmpty) {
+                            setDS(() => errorMsg = 'Name cannot be empty.');
+                            return;
+                          }
+                          if (phone.isEmpty) {
                             setDS(() =>
-                                errorMsg = 'Name cannot be empty.');
+                                errorMsg = 'Phone number cannot be empty.');
                             return;
                           }
                           if (!EmergencyService.isValidPhone(phone)) {
-                            setDS(() =>
-                                errorMsg = 'Enter a valid phone number.');
+                            setDS(() => errorMsg =
+                                'Enter a valid phone number (at least 7 digits).');
                             return;
                           }
 
@@ -125,19 +209,18 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                           });
 
                           try {
-                            await _service.addContact(
-                              name: name,
-                              phone: phone,
-                              relation: relationCtrl.text.trim(),
+                            await onSave(
+                              name,
+                              phone,
+                              relationCtrl.text.trim(),
                             );
                             if (!ctx.mounted) return;
-                            Navigator.pop(ctx);
+                            Navigator.pop(ctx, true);
                           } catch (_) {
                             if (!ctx.mounted) return;
                             setDS(() {
                               loading = false;
-                              errorMsg =
-                                  'Failed to save contact. Try again.';
+                              errorMsg = 'Failed to save. Try again.';
                             });
                           }
                         },
@@ -145,8 +228,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                       ? const SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2))
+                          child:
+                              CircularProgressIndicator(strokeWidth: 2))
                       : const Text('Save',
                           style: TextStyle(color: Colors.green)),
                 ),
@@ -156,10 +239,6 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
         );
       },
     );
-
-    nameCtrl.dispose();
-    phoneCtrl.dispose();
-    relationCtrl.dispose();
   }
 
   // ─── Delete Contact ───────────────────────────────────────────────────────
@@ -213,209 +292,261 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+
+    // Whether this screen was pushed onto the navigator (e.g. from Settings)
+    // vs. used as a tab in the bottom-nav — determines if the back button shows.
+    final canPop = Navigator.of(context).canPop();
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFFFEBEE), Color(0xFFFFF3E0)],
+            colors: isDark
+                ? const [Color(0xFF0D0D1A), Color(0xFF1A1A2E)]
+                : const [Color(0xFFFFEBEE), Color(0xFFFFF3E0)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                const SizedBox(height: 10),
-
-                // Title — unchanged
-                const Text(
-                  'Emergency Support',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
+          child: Column(
+            children: [
+              // Back row — only shown when there is a route to pop
+              if (canPop)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 8, top: 8),
+                    child: IconButton(
+                      icon: Icon(Icons.arrow_back, color: textColor),
+                      onPressed: () => Navigator.pop(context),
+                    ),
                   ),
                 ),
 
-                const SizedBox(height: 6),
+              // Single scrollable content — title + SOS + contacts all in one scroll
+              Expanded(
+                child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: _service.contactsStream(),
+                  builder: (context, snapshot) {
+                    final docs = snapshot.data?.docs ?? [];
 
-                const Text(
-                  'You are not alone. Help is one tap away.',
-                  style: TextStyle(color: Colors.grey),
-                ),
+                    return CustomScrollView(
+                      slivers: [
+                        // ── Header / SOS / Alert Banner ──
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                            child: Column(
+                              children: [
+                                // Title
+                                Text(
+                                  'Emergency Support',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w600,
+                                    color: textColor,
+                                  ),
+                                ),
 
-                const SizedBox(height: 30),
+                                const SizedBox(height: 6),
 
-                // SOS Button — now functional
-                GestureDetector(
-                  onTap: _alertSending ? null : _onSosTap,
-                  child: Container(
-                    height: 180,
-                    width: 180,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: _alertSending
-                            ? [Colors.grey.shade400, Colors.grey.shade300]
-                            : const [
-                                Color(0xFFD32F2F),
-                                Color(0xFFFF5252)
+                                Text(
+                                  'You are not alone. Help is one tap away.',
+                                  style: TextStyle(color: subtextColor),
+                                ),
+
+                                const SizedBox(height: 30),
+
+                                // SOS Button
+                                GestureDetector(
+                                  onTap: _alertSending ? null : _onSosTap,
+                                  child: Container(
+                                    height: 180,
+                                    width: 180,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: LinearGradient(
+                                        colors: _alertSending
+                                            ? [
+                                                Colors.grey.shade400,
+                                                Colors.grey.shade300
+                                              ]
+                                            : const [
+                                                Color(0xFFD32F2F),
+                                                Color(0xFFFF5252)
+                                              ],
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.red.withValues(alpha: 0.3),
+                                          blurRadius: 20,
+                                          spreadRadius: 6,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Center(
+                                      child: _alertSending
+                                          ? const CircularProgressIndicator(
+                                              color: Colors.white, strokeWidth: 3)
+                                          : const Text(
+                                              'SOS',
+                                              style: TextStyle(
+                                                fontSize: 36,
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 20),
+
+                                // Stress Alert Banner
+                                Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: cardColor,
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.warning, color: Colors.red),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          'High stress detected. Consider reaching out to someone you trust.',
+                                          style: TextStyle(color: textColor),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 24),
+
+                                // Contacts Header
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Emergency Contacts',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: textColor,
+                                      ),
+                                    ),
+                                    // Add contact (+) button
+                                    GestureDetector(
+                                      onTap: _showAddContactDialog,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: cardColor,
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: const Row(
+                                          children: [
+                                            Icon(Icons.add, size: 16, color: Colors.red),
+                                            SizedBox(width: 4),
+                                            Text('Add',
+                                                style: TextStyle(
+                                                    color: Colors.red, fontSize: 13)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 12),
                               ],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.red.withValues(alpha: 0.3),
-                          blurRadius: 20,
-                          spreadRadius: 6,
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: _alertSending
-                          ? const CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 3)
-                          : const Text(
-                              'SOS',
-                              style: TextStyle(
-                                fontSize: 36,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
                             ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Stress Alert Banner — unchanged
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.warning, color: Colors.red),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'High stress detected. Consider reaching out to someone you trust.',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Contacts Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Emergency Contacts',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    // Add contact (+) button
-                    GestureDetector(
-                      onTap: _showAddContactDialog,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.add, size: 16, color: Colors.red),
-                            SizedBox(width: 4),
-                            Text('Add',
-                                style: TextStyle(
-                                    color: Colors.red, fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                // Real-time contacts list
-                Expanded(
-                  child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                    stream: _service.contactsStream(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return const Center(
-                            child: CircularProgressIndicator());
-                      }
-
-                      if (snapshot.hasError) {
-                        return const Center(
-                          child: Text(
-                            'Failed to load contacts.',
-                            style: TextStyle(color: Colors.grey),
                           ),
-                        );
-                      }
+                        ),
 
-                      final docs = snapshot.data?.docs ?? [];
-
-                      if (docs.isEmpty) {
-                        return Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.person_add,
-                                  size: 40, color: Colors.grey),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'No emergency contacts yet.\nTap + Add to save one.',
-                                textAlign: TextAlign.center,
+                        // ── Contacts List or Empty State ──
+                        if (snapshot.connectionState == ConnectionState.waiting)
+                          const SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        else if (snapshot.hasError)
+                          const SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: Center(
+                              child: Text(
+                                'Failed to load contacts.',
                                 style: TextStyle(color: Colors.grey),
                               ),
-                            ],
+                            ),
+                          )
+                        else if (docs.isEmpty)
+                          SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: const [
+                                  Icon(Icons.person_add,
+                                      size: 40, color: Colors.grey),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'No emergency contacts yet.\nTap + Add to save one.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            sliver: SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) {
+                                  final doc = docs[index];
+                                  final data = doc.data();
+                                  final name = (data['name'] ?? '').toString();
+                                  final phone = (data['phone'] ?? '').toString();
+                                  final relation = (data['relation'] ?? '').toString();
+
+                                  return _contactTile(
+                                    context: context,
+                                    contactId: doc.id,
+                                    name: name,
+                                    phone: phone,
+                                    relation: relation,
+                                  );
+                                },
+                                childCount: docs.length,
+                              ),
+                            ),
                           ),
-                        );
-                      }
 
-                      return ListView.builder(
-                        itemCount: docs.length,
-                        itemBuilder: (context, index) {
-                          final doc = docs[index];
-                          final data = doc.data();
-                          final name =
-                              (data['name'] ?? '').toString();
-                          final phone =
-                              (data['phone'] ?? '').toString();
-                          final relation =
-                              (data['relation'] ?? '').toString();
-
-                          return _contactTile(
-                            context: context,
-                            contactId: doc.id,
-                            name: name,
-                            phone: phone,
-                            relation: relation,
-                          );
-                        },
-                      );
-                    },
-                  ),
+                        // Bottom padding so content doesn't hide behind buttons
+                        const SliverToBoxAdapter(
+                          child: SizedBox(height: 16),
+                        ),
+                      ],
+                    );
+                  },
                 ),
+              ),
 
-                // Action Buttons — same appearance, now functional
-                StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              // Action Buttons — fixed at bottom
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                   stream: _service.contactsStream(),
                   builder: (context, snapshot) {
                     final docs = snapshot.data?.docs ?? [];
@@ -456,10 +587,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                     );
                   },
                 ),
-
-                const SizedBox(height: 20),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -475,40 +604,70 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     required String phone,
     required String relation,
   }) {
-    return GestureDetector(
-      onLongPress: () => _confirmDelete(context, contactId, name),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.person),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E2C) : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.person,
+              color: isDark ? Colors.white70 : Colors.black87),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : Colors.black87,
                   ),
-                  Text(
-                    relation.isEmpty ? phone : '$phone · $relation',
-                    style: const TextStyle(color: Colors.grey),
+                ),
+                Text(
+                  relation.isEmpty ? phone : '$phone · $relation',
+                  style: TextStyle(
+                    color: isDark ? Colors.grey.shade400 : Colors.grey,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            GestureDetector(
-              onTap: () => _service.makeCall(phone),
-              child: const Icon(Icons.call, color: Colors.green),
+          ),
+          // Edit button
+          GestureDetector(
+            onTap: () => _showEditContactDialog(
+              contactId: contactId,
+              currentName: name,
+              currentPhone: phone,
+              currentRelation: relation,
             ),
-          ],
-        ),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Icon(Icons.edit,
+                  size: 20,
+                  color: isDark ? Colors.grey.shade400 : Colors.grey),
+            ),
+          ),
+          // Delete button
+          GestureDetector(
+            onTap: () => _confirmDelete(context, contactId, name),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Icon(Icons.delete_outline,
+                  size: 20,
+                  color: Colors.red.shade400),
+            ),
+          ),
+          // Call button
+          GestureDetector(
+            onTap: () => _service.makeCall(phone),
+            child: const Icon(Icons.call, color: Colors.green),
+          ),
+        ],
       ),
     );
   }
@@ -546,6 +705,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     String label,
     IconData icon, {
     TextInputType type = TextInputType.text,
+    bool isDark = false,
   }) {
     return TextField(
       controller: ctrl,
@@ -554,7 +714,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
         labelText: label,
         prefixIcon: Icon(icon, size: 20),
         filled: true,
-        fillColor: const Color(0xFFF5F5F5),
+        fillColor: isDark ? const Color(0xFF2A2A3A) : const Color(0xFFF5F5F5),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,

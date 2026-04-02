@@ -18,11 +18,17 @@ class DiaryDetailScreen extends StatelessWidget {
         : '';
     final textStress = entry['textStress'] as num?;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
+            colors: isDark
+                ? const [Color(0xFF0D0D1A), Color(0xFF1A1A2E)]
+                : const [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -36,15 +42,16 @@ class DiaryDetailScreen extends StatelessWidget {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back),
+                      icon: Icon(Icons.arrow_back, color: textColor),
                       onPressed: () => Navigator.pop(context),
                     ),
                     const SizedBox(width: 4),
-                    const Text(
+                    Text(
                       'Diary Entry',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
+                        color: textColor,
                       ),
                     ),
                     const Spacer(),
@@ -53,13 +60,13 @@ class DiaryDetailScreen extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Text(
+                      child: Text(
                         '🔒 Read Only',
-                        style:
-                            TextStyle(fontSize: 11, color: Colors.grey),
+                        style: TextStyle(
+                            fontSize: 11, color: isDark ? Colors.grey.shade400 : Colors.grey),
                       ),
                     ),
                   ],
@@ -78,7 +85,7 @@ class DiaryDetailScreen extends StatelessWidget {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: cardColor,
                           borderRadius: BorderRadius.circular(18),
                         ),
                         child: Column(
@@ -86,10 +93,10 @@ class DiaryDetailScreen extends StatelessWidget {
                           children: [
                             Text(
                               dateStr,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
-                                color: Color(0xFF555555),
+                                color: isDark ? Colors.grey.shade400 : const Color(0xFF555555),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -133,15 +140,15 @@ class DiaryDetailScreen extends StatelessWidget {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFF8E1),
+                          color: isDark ? const Color(0xFF2A2A1A) : const Color(0xFFFFF8E1),
                           borderRadius: BorderRadius.circular(18),
                         ),
                         child: Text(
                           text,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             height: 1.6,
-                            color: Color(0xFF444444),
+                            color: isDark ? Colors.grey.shade300 : const Color(0xFF444444),
                           ),
                         ),
                       ),

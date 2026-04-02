@@ -43,9 +43,11 @@ class _LoginScreenState extends State<LoginScreen> {
       await AuthService().login(email: email, password: password);
 
       if (!mounted) return;
-      Navigator.pushReplacement(
+      // Replace the entire stack so user can't go back to login
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const MainScreen()),
+        (route) => false,
       );
     } catch (e) {
       if (!mounted) return;
@@ -61,11 +63,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF4A4A4A);
+    final subtextColor = isDark ? Colors.grey.shade400 : const Color(0xFF7A7A7A);
+    final fieldFillColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final fieldTextStyle = TextStyle(color: isDark ? Colors.white : Colors.black87);
+    final fieldHintStyle = TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey);
+    final canPop = Navigator.of(context).canPop();
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFEDE7F6), Color(0xFFE0F2F1)],
+            colors: isDark
+                ? const [Color(0xFF0D0D1A), Color(0xFF1A1A2E)]
+                : const [Color(0xFFEDE7F6), Color(0xFFE0F2F1)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -77,13 +89,15 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 10),
 
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () => Navigator.pop(context),
+                // Only show back button if there's a route to pop
+                if (canPop)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: Icon(Icons.arrow_back, color: textColor),
+                      onPressed: () => Navigator.pop(context),
+                    ),
                   ),
-                ),
 
                 const SizedBox(height: 20),
 
@@ -101,12 +115,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 20),
 
-                const Text(
+                Text(
                   'Welcome Back',
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF4A4A4A),
+                    color: textColor,
                   ),
                 ),
 
@@ -117,6 +131,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   hint: 'Enter your email',
                   icon: Icons.email_outlined,
                   controller: emailController,
+                  textColor: subtextColor,
+                  fillColor: fieldFillColor,
+                  fieldTextStyle: fieldTextStyle,
+                  fieldHintStyle: fieldHintStyle,
                 ),
 
                 _inputField(
@@ -125,9 +143,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   icon: Icons.lock_outline,
                   controller: passwordController,
                   obscure: !passwordVisible,
+                  textColor: subtextColor,
+                  fillColor: fieldFillColor,
+                  fieldTextStyle: fieldTextStyle,
+                  fieldHintStyle: fieldHintStyle,
                   suffixWidget: IconButton(
                     icon: Icon(
                       passwordVisible ? Icons.visibility : Icons.visibility_off,
+                      color: subtextColor,
                     ),
                     onPressed: () {
                       setState(() {
@@ -144,7 +167,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.7),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.white.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
@@ -152,7 +177,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       const Icon(Icons.fingerprint,
                           color: Color(0xFF9C27B0)),
                       const SizedBox(width: 10),
-                      const Expanded(child: Text('Biometric Lock')),
+                      Expanded(
+                        child: Text(
+                          'Biometric Lock',
+                          style: TextStyle(color: textColor),
+                        ),
+                      ),
                       Switch(value: false, onChanged: (_) {}),
                     ],
                   ),
@@ -197,11 +227,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     );
                   },
-                  child: const Text(
+                  child: Text(
                     'Forgot Password?',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF9E9E9E),
+                      color: isDark ? Colors.grey.shade400 : const Color(0xFF9E9E9E),
                     ),
                   ),
                 ),
@@ -220,6 +250,10 @@ class _LoginScreenState extends State<LoginScreen> {
     required String hint,
     required IconData icon,
     required TextEditingController controller,
+    required Color textColor,
+    required Color fillColor,
+    required TextStyle fieldTextStyle,
+    required TextStyle fieldHintStyle,
     bool obscure = false,
     Widget? suffixWidget,
   }) {
@@ -231,17 +265,19 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           Text(label,
               style:
-              const TextStyle(fontSize: 14, color: Color(0xFF7A7A7A))),
+              TextStyle(fontSize: 14, color: textColor)),
           const SizedBox(height: 6),
           TextField(
             controller: controller,
             obscureText: obscure,
+            style: fieldTextStyle,
             decoration: InputDecoration(
               hintText: hint,
-              prefixIcon: Icon(icon),
+              hintStyle: fieldHintStyle,
+              prefixIcon: Icon(icon, color: textColor),
               suffixIcon: suffixWidget,
               filled: true,
-              fillColor: Colors.white,
+              fillColor: fillColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(18),
                 borderSide: BorderSide.none,

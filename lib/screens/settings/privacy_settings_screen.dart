@@ -132,11 +132,17 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
+            colors: isDark
+                ? const [Color(0xFF0D0D1A), Color(0xFF1A1A2E)]
+                : const [Color(0xFFF7F7FB), Color(0xFFEFF6F5)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -151,35 +157,36 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: IconButton(
-                        icon: const Icon(Icons.arrow_back),
+                        icon: Icon(Icons.arrow_back, color: textColor),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ),
 
                     const SizedBox(height: 10),
 
-                    const Text(
+                    Text(
                       'Privacy & Security',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w600,
+                        color: textColor,
                       ),
                     ),
 
                     const SizedBox(height: 24),
 
                     // ── App Lock ──
-                    _sectionTitle('App Lock'),
+                    _sectionTitle('App Lock', isDark),
                     Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: cardColor,
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: SwitchListTile(
                         secondary: const Icon(Icons.lock, color: Colors.green),
-                        title: const Text('App Lock'),
-                        subtitle: const Text('Require PIN to access diary'),
+                        title: Text('App Lock', style: TextStyle(color: textColor)),
+                        subtitle: Text('Require PIN to access diary', style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey)),
                         value: _appLockEnabled,
                         activeColor: const Color(0xFF9BE7C4),
                         onChanged: _toggleAppLock,
@@ -189,23 +196,32 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                     const SizedBox(height: 20),
 
                     // ── Permissions ──
-                    _sectionTitle('Permissions'),
+                    _sectionTitle('Permissions', isDark),
                     _permissionTile(
                       icon: Icons.camera_alt,
                       title: 'Camera',
                       subtitle: 'Face analysis & stress detection',
+                      cardColor: cardColor,
+                      textColor: textColor,
+                      isDark: isDark,
                       onTap: () => _requestPermission(Permission.camera, 'Camera'),
                     ),
                     _permissionTile(
                       icon: Icons.mic,
                       title: 'Microphone',
                       subtitle: 'Voice analysis & recording',
+                      cardColor: cardColor,
+                      textColor: textColor,
+                      isDark: isDark,
                       onTap: () => _requestPermission(Permission.microphone, 'Microphone'),
                     ),
                     _permissionTile(
                       icon: Icons.folder,
                       title: 'Storage',
                       subtitle: 'Save audio recordings',
+                      cardColor: cardColor,
+                      textColor: textColor,
+                      isDark: isDark,
                       onTap: () => _requestPermission(Permission.storage, 'Storage'),
                     ),
                   ],
@@ -215,14 +231,14 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
     );
   }
 
-  static Widget _sectionTitle(String text) {
+  static Widget _sectionTitle(String text, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
-          color: Colors.grey,
+          color: isDark ? Colors.grey.shade400 : Colors.grey,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -233,20 +249,23 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
     required IconData icon,
     required String title,
     required String subtitle,
+    required Color cardColor,
+    required Color textColor,
+    required bool isDark,
     required VoidCallback onTap,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(18),
       ),
       child: ListTile(
         onTap: onTap,
         leading: Icon(icon, color: Colors.green),
-        title: Text(title),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right),
+        title: Text(title, style: TextStyle(color: textColor)),
+        subtitle: Text(subtitle, style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey)),
+        trailing: Icon(Icons.chevron_right, color: textColor.withOpacity(0.5)),
       ),
     );
   }

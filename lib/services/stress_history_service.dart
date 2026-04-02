@@ -13,20 +13,18 @@ class StressHistoryService {
   static CollectionReference<Map<String, dynamic>> _historyRef(String uid) =>
       _firestore.collection('users').doc(uid).collection('stress_history');
 
-  /// **Shared stress computation** — used by dashboard AND history.
+  /// **Shared stress computation** — used by dashboard, history AND profile.
   ///
-  /// If the document contains a pre-computed `finalStress` field (0–100),
-  /// that value is used directly (backward compatibility).
-  /// Otherwise it averages only the non-zero modalities:
+  /// Always computes from the individual modality fields so that the result
+  /// is the average of only the non-zero modalities:
   ///   finalStress = sum(nonZeroValues) / nonZeroValues.length
+  ///
+  /// Example: text = 5, voice = 20 → (5 + 20) / 2 = 12.5
+  ///
+  /// The legacy `finalStress` field stored in Firestore is ignored here to
+  /// guarantee consistency — old documents may have stored a single
+  /// modality's raw value rather than the combined average.
   static double computeStress(Map<String, dynamic> d) {
-    // 1. Check for pre-computed value first
-    final precomputed = (d['finalStress'] as num?)?.toDouble();
-    if (precomputed != null && precomputed > 0) {
-      return precomputed.clamp(0.0, 100.0);
-    }
-
-    // 2. Compute from individual modalities
     final face  = (d['faceStress']  as num?)?.toDouble() ?? 0;
     final voice = (d['voiceStress'] as num?)?.toDouble() ?? 0;
     final text  = (d['textStress']  as num?)?.toDouble() ?? 0;
@@ -37,11 +35,12 @@ class StressHistoryService {
 
   /// Save a stress result to Firestore.
   /// Pass only the stress value(s) that were actually measured; the rest default to 0.
-  /// Also stores pre-computed `finalStress` for fast reads.
+  /// Also stores pre-computed `finalStress` and an optional [emotion] string.
   static Future<void> saveStressResult({
     double faceStress = 0,
     double voiceStress = 0,
     double textStress = 0,
+    String emotion = '',
   }) async {
     final uid = _uid;
     if (uid == null || uid.isEmpty) {
@@ -66,6 +65,7 @@ class StressHistoryService {
       'voiceStress': vClamped,
       'textStress': tClamped,
       'finalStress': finalStress,
+      'emotion': emotion,
     });
   }
 
@@ -87,4 +87,38 @@ class StressHistoryService {
         .limit(1)
         .snapshots();
   }
+
+  /// Stream of the latest 2 stress entries — used for trend comparison.
+  static Stream<QuerySnapshot<Map<String, dynamic>>> latestTwoEntriesStream() {
+    final uid = _uid;
+    if (uid == null || uid.isEmpty) return const Stream.empty();
+    return _historyRef(uid)
+        .orderBy('timestamp', descending: true)
+        .limit(2)
+        .snapshots();
+  }
+
+  /// Stream of the latest [n] stress entries — used for dashboard mini-chart.
+  static Stream<QuerySnapshot<Map<String, dynamic>>> latestEntriesStream(int n) {
+    final uid = _uid;
+    if (uid == null || uid.isEmpty) return const Stream.empty();
+    return _historyRef(uid)
+        .orderBy('timestamp', descending: true)
+        .limit(n)
+        .snapshots();
+  }
+
+  /// One-shot Future returning the latest stress data, or `null` if none.
+  /// Used by the chatbot to fetch contextual data without a stream.
+  static Future<Map<String, dynamic>?> latestStressFuture() async {
+    final uid = _uid;
+    if (uid == null || uid.isEmpty) return null;
+    final snap = await _historyRef(uid)
+        .orderBy('timestamp', descending: true)
+        .limit(1)
+        .get();
+    if (snap.docs.isEmpty) return null;
+    return snap.docs.first.data();
+  }
 }
+

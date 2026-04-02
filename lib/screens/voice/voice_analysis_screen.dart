@@ -5,6 +5,7 @@ import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../services/voice_analysis_service.dart';
 import '../../services/stress_history_service.dart';
+import '../../services/combined_stress_service.dart';
 
 class VoiceAnalysisScreen extends StatefulWidget {
   const VoiceAnalysisScreen({super.key});
@@ -116,6 +117,11 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
     try {
       final result =
           await VoiceAnalysisService.analyzeVoice(File(_recordingPath!));
+      // Update combined stress tracker
+      CombinedStressService.instance.updateVoice(
+        result.stressLevel,
+        emotion: result.emotion,
+      );
       setState(() {
         _result = result;
         _isLoading = false;
@@ -135,8 +141,12 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
     setState(() => _isSaving = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
+      final combined = CombinedStressService.instance;
       await StressHistoryService.saveStressResult(
+        faceStress: combined.faceStress,
         voiceStress: _result!.stressLevel,
+        textStress: combined.textStress,
+        emotion: _result!.emotion,
       );
       if (mounted) {
         messenger.showSnackBar(
@@ -224,6 +234,11 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+
     // Dynamic gradient based on result
     List<Color> bgGradient;
     if (_result != null) {
@@ -233,7 +248,9 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
         color.withValues(alpha: 0.04),
       ];
     } else {
-      bgGradient = const [Color(0xFFFFE5F0), Color(0xFFFFF1F6)];
+      bgGradient = isDark
+          ? const [Color(0xFF0D0D1A), Color(0xFF1A1A2E)]
+          : const [Color(0xFFFFE5F0), Color(0xFFFFF1F6)];
     }
 
     return Scaffold(
@@ -254,14 +271,15 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back),
+                      icon: Icon(Icons.arrow_back, color: textColor),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    const Text(
+                    Text(
                       'Voice Analysis',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
+                        color: textColor,
                       ),
                     ),
                   ],
@@ -278,17 +296,17 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
 
                 // Loading indicator (after recording stops, before result)
                 if (_isLoading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
                     child: Column(
                       children: [
-                        CircularProgressIndicator(
+                        const CircularProgressIndicator(
                           color: Color(0xFF7AD7C1),
                         ),
-                        SizedBox(height: 12),
+                        const SizedBox(height: 12),
                         Text(
                           'Analyzing your voice…',
-                          style: TextStyle(color: Colors.grey),
+                          style: TextStyle(color: subtextColor),
                         ),
                       ],
                     ),
@@ -310,37 +328,47 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
   // ---------- UI STATES ----------
 
   Widget _instruction() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: const Text(
+      child: Text(
         'Speak freely for 10–15 seconds',
-        style: TextStyle(fontSize: 16),
+        style: TextStyle(fontSize: 16, color: textColor),
       ),
     );
   }
 
   Widget _idleMic() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return Column(
       children: [
         GestureDetector(
           onTap: _startRecording,
           child: _micCircle(
-            color1: Color(0xFF9BE7C4),
-            color2: Color(0xFF7AD7C1),
+            color1: const Color(0xFF9BE7C4),
+            color2: const Color(0xFF7AD7C1),
             icon: Icons.mic,
           ),
         ),
         const SizedBox(height: 14),
-        const Text('Tap to start recording'),
+        Text('Tap to start recording', style: TextStyle(color: textColor)),
       ],
     );
   }
 
   Widget _recordingMic() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return Column(
       children: [
         const SizedBox(height: 20),
@@ -374,8 +402,8 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
         ),
 
         const SizedBox(height: 14),
-        Text('${seconds}s'),
-        const Text('Recording...'),
+        Text('${seconds}s', style: TextStyle(color: textColor)),
+        Text('Recording...', style: TextStyle(color: textColor)),
       ],
     );
   }
@@ -383,6 +411,11 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
   // ── Result UI (dynamic) ───────────────────────────────────────────────────
 
   Widget _resultSection(VoiceAnalysisResult result) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
+
     final stressValue = result.stressLevel.clamp(0, 100).toDouble();
     final color = _stressColor(stressValue);
     final stressLbl = _stressLabel(stressValue);
@@ -395,7 +428,7 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: cardColor,
             borderRadius: BorderRadius.circular(20),
             border:
                 Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
@@ -404,9 +437,9 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Title
-              const Text(
+              Text(
                 '🎙️ Voice Analysis Result',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textColor),
               ),
 
               const SizedBox(height: 16),
@@ -430,9 +463,9 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'You seem:',
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                          style: TextStyle(color: subtextColor, fontSize: 12),
                         ),
                         Text(
                           stressLbl,
@@ -453,9 +486,9 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
               // Emotion displayed separately
               Text(
                 'Emotion detected: ${result.emotion}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey,
+                  color: subtextColor,
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -466,9 +499,9 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Stress Level',
-                    style: TextStyle(fontWeight: FontWeight.w500),
+                    style: TextStyle(fontWeight: FontWeight.w500, color: textColor),
                   ),
                   Text(
                     '${stressValue.toStringAsFixed(0)}%  •  $stressLbl',
@@ -488,7 +521,7 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
                 child: LinearProgressIndicator(
                   value: stressValue / 100,
                   minHeight: 10,
-                  backgroundColor: Colors.grey.shade200,
+                  backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
                   valueColor: AlwaysStoppedAnimation<Color>(color),
                 ),
               ),
@@ -504,7 +537,7 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
                 ),
                 child: Text(
                   _advice(stressValue, result.emotion),
-                  style: const TextStyle(fontSize: 14, height: 1.5),
+                  style: TextStyle(fontSize: 14, height: 1.5, color: textColor),
                 ),
               ),
             ],
@@ -552,13 +585,14 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
   // ── Error UI ──────────────────────────────────────────────────────────────
 
   Widget _errorSection(String message) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFEBEE),
+        color: isDark ? const Color(0xFF3A1A1A) : const Color(0xFFFFEBEE),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.red.shade200),
+        border: Border.all(color: isDark ? Colors.red.shade800 : Colors.red.shade200),
       ),
       child: Row(
         children: [
@@ -604,18 +638,19 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
   }
 
   Widget _suggestion(String emoji, String text) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E2C) : Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
           Text(emoji, style: const TextStyle(fontSize: 22)),
           const SizedBox(width: 10),
-          Text(text),
+          Text(text, style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
         ],
       ),
     );
@@ -643,18 +678,22 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
   }
 
   Widget _secondaryButton(String text, {VoidCallback? onTap}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 52,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1E1E2C) : Colors.white,
           borderRadius: BorderRadius.circular(18),
         ),
         child: Center(
           child: Text(
             text,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
           ),
         ),
       ),

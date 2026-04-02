@@ -8,6 +8,7 @@ import 'firebase_options.dart';
 
 import 'screens/onboarding/onboarding_screen.dart';
 import 'services/prefs_service.dart';
+import 'services/theme_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,15 +28,18 @@ class MindEaseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'MindEase',
-      theme: ThemeData(
-        useMaterial3: false,
-        primaryColor: const Color(0xFF9BE7C4),
-        scaffoldBackgroundColor: Colors.white,
-      ),
-      home: const StartDecider(),
+    return AnimatedBuilder(
+      animation: themeService,
+      builder: (context, _) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'MindEase',
+          theme: themeService.lightTheme,
+          darkTheme: themeService.darkTheme,
+          themeMode: themeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          home: const StartDecider(),
+        );
+      },
     );
   }
 }
