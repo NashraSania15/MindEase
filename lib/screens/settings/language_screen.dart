@@ -139,6 +139,15 @@ class _LanguageScreenState extends State<LanguageScreen> {
         border: isSelected
             ? Border.all(color: const Color(0xFF9BE7C4), width: 2)
             : null,
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: ListTile(
         onTap: () => _saveLanguage(code),

@@ -19,6 +19,8 @@ void main() async {
   } catch (e) {
     // Firebase already initialized by native google-services.json — safe to ignore
   }
+  // Load saved theme (dark/light) before first frame to avoid flicker
+  await ThemeService.initialize();
   runApp(const MindEaseApp());
 }
 

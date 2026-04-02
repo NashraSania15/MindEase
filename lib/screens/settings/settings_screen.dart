@@ -26,9 +26,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // 🔴 FINAL LOGOUT LOGIC
   Future<void> _logout() async {
     try {
-      // 1️⃣ Clear all SharedPreferences session data
+      // 1️⃣ Clear session data but preserve user preferences (e.g. dark mode)
       final prefs = await SharedPreferences.getInstance();
+      final keepDarkMode = prefs.getBool('dark_mode_enabled');
       await prefs.clear();
+      if (keepDarkMode != null) {
+        await prefs.setBool('dark_mode_enabled', keepDarkMode);
+      }
 
       // 2️⃣ Firebase sign out
       await FirebaseAuth.instance.signOut();
@@ -107,6 +111,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 decoration: BoxDecoration(
                   color: cardColor,
                   borderRadius: BorderRadius.circular(18),
+                  boxShadow: isDark
+                      ? []
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                 ),
                 child: AnimatedBuilder(
                   animation: themeService,
@@ -240,6 +253,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: ListTile(
         onTap: onTap,

@@ -178,7 +178,11 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: loading ? null : () => Navigator.pop(ctx, false),
+                  onPressed: loading
+                      ? null
+                      : () {
+                          if (ctx.mounted) Navigator.pop(ctx, false);
+                        },
                   child: const Text('Cancel'),
                 ),
                 TextButton(
@@ -414,15 +418,24 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                                   decoration: BoxDecoration(
                                     color: cardColor,
                                     borderRadius: BorderRadius.circular(18),
+                                    boxShadow: isDark
+                                        ? []
+                                        : [
+                                            BoxShadow(
+                                              color: Colors.red.withOpacity(0.08),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.warning, color: Colors.red),
+                                      const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 26),
                                       const SizedBox(width: 10),
                                       Expanded(
                                         child: Text(
                                           'High stress detected. Consider reaching out to someone you trust.',
-                                          style: TextStyle(color: textColor),
+                                          style: TextStyle(color: textColor, fontSize: 13),
                                         ),
                                       ),
                                     ],
@@ -611,6 +624,15 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E2C) : Colors.white,
         borderRadius: BorderRadius.circular(18),
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
       ),
       child: Row(
         children: [

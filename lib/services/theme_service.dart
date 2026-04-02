@@ -10,7 +10,15 @@ class ThemeService extends ChangeNotifier {
   }
 
   bool _isDarkMode = false;
+  bool _initialized = false;
   bool get isDarkMode => _isDarkMode;
+
+  /// Call once at app startup before runApp() to avoid theme flicker.
+  static Future<void> initialize() async {
+    final prefs = await SharedPreferences.getInstance();
+    themeService._isDarkMode = prefs.getBool(_key) ?? false;
+    themeService._initialized = true;
+  }
 
   // ─── Light Theme ────────────────────────────────────────────────────────────
   ThemeData get lightTheme => ThemeData(
@@ -72,6 +80,7 @@ class ThemeService extends ChangeNotifier {
   }
 
   Future<void> _loadFromPrefs() async {
+    if (_initialized) return; // Already loaded by initialize()
     final prefs = await SharedPreferences.getInstance();
     _isDarkMode = prefs.getBool(_key) ?? false;
     notifyListeners();

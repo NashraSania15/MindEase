@@ -87,6 +87,15 @@ class DiaryDetailScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: cardColor,
                           borderRadius: BorderRadius.circular(18),
+                          boxShadow: isDark
+                              ? []
+                              : [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,6 +151,15 @@ class DiaryDetailScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: isDark ? const Color(0xFF2A2A1A) : const Color(0xFFFFF8E1),
                           borderRadius: BorderRadius.circular(18),
+                          boxShadow: isDark
+                              ? []
+                              : [
+                                  BoxShadow(
+                                    color: Colors.orange.withOpacity(0.08),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
                         ),
                         child: Text(
                           text,
