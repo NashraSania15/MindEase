@@ -133,6 +133,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF1A1A2E) : const Color(0xFFEFF6F5),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(

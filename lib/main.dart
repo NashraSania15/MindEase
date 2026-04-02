@@ -62,17 +62,13 @@ class StartDecider extends StatelessWidget {
 
         final user = FirebaseAuth.instance.currentUser;
 
-        // 1️⃣ First time → onboarding
-        if (!snapshot.data!) {
-          return const OnboardingScreen();
+        // 1️⃣ First time or Not logged in -> Login
+        if (user == null) {
+          return const LoginScreen();
         }
 
-        // 2️⃣ After onboarding
-        // logged in → main
-        // not logged in → login
-        return user == null
-            ? const LoginScreen()
-            : const MainScreen();
+        // 2️⃣ Logged in -> Main (Tour is handled inside MainScreen after login)
+        return const MainScreen();
       },
     );
   }

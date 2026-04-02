@@ -254,6 +254,7 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
     }
 
     return Scaffold(
+      backgroundColor: bgGradient.last,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(

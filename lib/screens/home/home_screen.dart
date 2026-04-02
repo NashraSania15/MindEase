@@ -15,6 +15,7 @@ import '../goals/goals_screen.dart';
 import '../support/support_screen.dart';
 import '../combined/final_analysis_screen.dart';
 
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -60,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen>
     final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF1A1A2E) : const Color(0xFFEFF6F5),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -127,8 +129,7 @@ class _HomeScreenState extends State<HomeScreen>
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF9BE7C4)
-                                      .withOpacity(0.4),
+                                  color: const Color(0xFF9BE7C4).withOpacity(0.4),
                                   blurRadius: 8,
                                   offset: const Offset(0, 3),
                                 ),
@@ -145,8 +146,8 @@ class _HomeScreenState extends State<HomeScreen>
 
                     // ── Stress Card — real-time from Firestore ──
                     StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                      stream: StressHistoryService.latestTwoEntriesStream(),
-                      builder: (context, snapshot) {
+                        stream: StressHistoryService.latestTwoEntriesStream(),
+                        builder: (context, snapshot) {
                         String emoji = '😊';
                         String label = 'Calm';
                         String levelText = 'Stress Level: Low';
@@ -387,132 +388,132 @@ class _HomeScreenState extends State<HomeScreen>
                     LayoutBuilder(
                       builder: (context, constraints) {
                         return GridView.count(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio:
-                              constraints.maxWidth > 400 ? 1.3 : 1.15,
-                          children: [
-                            _FeatureCard(
-                              title: 'Voice Check',
-                              icon: Icons.mic,
-                              emoji: '🎙️',
-                              gradient: const [
-                                Color(0xFFE8F5E9),
-                                Color(0xFFD0F0E8),
-                              ],
-                              darkGradient: const [
-                                Color(0xFF1B3A2D),
-                                Color(0xFF1A2E28),
-                              ],
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const VoiceAnalysisScreen(),
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            childAspectRatio:
+                                constraints.maxWidth > 400 ? 1.3 : 1.15,
+                            children: [
+                              _FeatureCard(
+                                title: 'Voice Check',
+                                icon: Icons.mic,
+                                emoji: '🎙️',
+                                gradient: const [
+                                  Color(0xFFE8F5E9),
+                                  Color(0xFFD0F0E8),
+                                ],
+                                darkGradient: const [
+                                  Color(0xFF1B3A2D),
+                                  Color(0xFF1A2E28),
+                                ],
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const VoiceAnalysisScreen(),
+                                  ),
                                 ),
                               ),
-                            ),
-                            _FeatureCard(
-                              title: 'Text Check',
-                              icon: Icons.edit,
-                              emoji: '✍️',
-                              gradient: const [
-                                Color(0xFFE3F2FD),
-                                Color(0xFFBBDEFB),
-                              ],
-                              darkGradient: const [
-                                Color(0xFF1A2A3A),
-                                Color(0xFF1A2535),
-                              ],
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const TextAnalysisScreen(),
+                              _FeatureCard(
+                                title: 'Text Check',
+                                icon: Icons.edit,
+                                emoji: '✍️',
+                                gradient: const [
+                                  Color(0xFFE3F2FD),
+                                  Color(0xFFBBDEFB),
+                                ],
+                                darkGradient: const [
+                                  Color(0xFF1A2A3A),
+                                  Color(0xFF1A2535),
+                                ],
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const TextAnalysisScreen(),
+                                  ),
                                 ),
                               ),
-                            ),
-                            _FeatureCard(
-                              title: 'Face Check',
-                              icon: Icons.camera_alt,
-                              emoji: '📸',
-                              gradient: const [
-                                Color(0xFFFCE4EC),
-                                Color(0xFFF8BBD0),
-                              ],
-                              darkGradient: const [
-                                Color(0xFF3A1A2A),
-                                Color(0xFF351A28),
-                              ],
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const FaceAnalysisScreen(),
+                              _FeatureCard(
+                                title: 'Face Check',
+                                icon: Icons.camera_alt,
+                                emoji: '📸',
+                                gradient: const [
+                                  Color(0xFFFCE4EC),
+                                  Color(0xFFF8BBD0),
+                                ],
+                                darkGradient: const [
+                                  Color(0xFF3A1A2A),
+                                  Color(0xFF351A28),
+                                ],
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const FaceAnalysisScreen(),
+                                  ),
                                 ),
                               ),
-                            ),
-                            _FeatureCard(
-                              title: 'AI Chat',
-                              icon: Icons.smart_toy,
-                              emoji: '🤖',
-                              gradient: const [
-                                Color(0xFFF3E5F5),
-                                Color(0xFFE1BEE7),
-                              ],
-                              darkGradient: const [
-                                Color(0xFF2A1A3A),
-                                Color(0xFF251A35),
-                              ],
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const AiChatScreen(),
+                              _FeatureCard(
+                                title: 'AI Chat',
+                                icon: Icons.smart_toy,
+                                emoji: '🤖',
+                                gradient: const [
+                                  Color(0xFFF3E5F5),
+                                  Color(0xFFE1BEE7),
+                                ],
+                                darkGradient: const [
+                                  Color(0xFF2A1A3A),
+                                  Color(0xFF251A35),
+                                ],
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const AiChatScreen(),
+                                  ),
                                 ),
                               ),
-                            ),
-                            _FeatureCard(
-                              title: 'Meditation',
-                              icon: Icons.self_improvement,
-                              emoji: '🧘',
-                              gradient: const [
-                                Color(0xFFFFF3E0),
-                                Color(0xFFFFE0B2),
-                              ],
-                              darkGradient: const [
-                                Color(0xFF3A2A1A),
-                                Color(0xFF352A1A),
-                              ],
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const MeditationScreen(),
+                              _FeatureCard(
+                                title: 'Meditation',
+                                icon: Icons.self_improvement,
+                                emoji: '🧘',
+                                gradient: const [
+                                  Color(0xFFFFF3E0),
+                                  Color(0xFFFFE0B2),
+                                ],
+                                darkGradient: const [
+                                  Color(0xFF3A2A1A),
+                                  Color(0xFF352A1A),
+                                ],
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const MeditationScreen(),
+                                  ),
                                 ),
                               ),
-                            ),
-                            _FeatureCard(
-                              title: 'Goals',
-                              icon: Icons.flag,
-                              emoji: '🎯',
-                              gradient: const [
-                                Color(0xFFE0F7FA),
-                                Color(0xFFB2EBF2),
-                              ],
-                              darkGradient: const [
-                                Color(0xFF1A2E3A),
-                                Color(0xFF1A2835),
-                              ],
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const GoalsScreen(),
+                              _FeatureCard(
+                                title: 'Goals',
+                                icon: Icons.flag,
+                                emoji: '🎯',
+                                gradient: const [
+                                  Color(0xFFE0F7FA),
+                                  Color(0xFFB2EBF2),
+                                ],
+                                darkGradient: const [
+                                  Color(0xFF1A2E3A),
+                                  Color(0xFF1A2835),
+                                ],
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const GoalsScreen(),
+                                  ),
                                 ),
-                              ),
                             ),
                           ],
                         );

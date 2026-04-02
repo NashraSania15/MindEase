@@ -137,6 +137,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
     final textColor = isDark ? Colors.white : Colors.black87;
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF1A1A2E) : const Color(0xFFEFF6F5),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(

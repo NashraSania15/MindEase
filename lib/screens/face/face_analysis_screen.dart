@@ -175,6 +175,7 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
     }
 
     return Scaffold(
+      backgroundColor: bgGradient.last,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(

@@ -45,6 +45,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
     final progress = goals.isEmpty ? 0.0 : completed / goals.length;
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF1A1A2E) : const Color(0xFFEFF6F5),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(

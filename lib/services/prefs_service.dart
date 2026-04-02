@@ -4,6 +4,17 @@ class PrefsService {
   static const String _onboardingKey = 'onboarding_done';
   static const String _languageKey = 'selected_language';
   static const String _appLockKey = 'app_lock_enabled';
+  static const String _tourKey = 'app_tour_done';
+
+  Future<bool> isAppTourDone(String uid) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('${_tourKey}_$uid') ?? false;
+  }
+
+  Future<void> setAppTourDone(String uid) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('${_tourKey}_$uid', true);
+  }
 
   Future<bool> isOnboardingDone() async {
     final prefs = await SharedPreferences.getInstance();

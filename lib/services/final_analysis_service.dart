@@ -51,9 +51,16 @@ class FinalAnalysisService {
         );
       }
 
+      print('DEBUG: Combined Analysis - Sending request to $uri');
+      print('DEBUG: Text length: ${text.length}');
+      print('DEBUG: Image captured: ${imageFile != null}');
+      print('DEBUG: Audio captured: ${audioFile != null}');
+
       final streamedResponse =
-          await request.send().timeout(const Duration(seconds: 45));
+          await request.send().timeout(const Duration(seconds: 90));
+      print('DEBUG: Response received: ${streamedResponse.statusCode}');
       final response = await http.Response.fromStream(streamedResponse);
+      print('DEBUG: Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;

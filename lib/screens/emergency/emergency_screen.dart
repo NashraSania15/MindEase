@@ -313,6 +313,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF1A1A2E) : const Color(0xFFFFF3E0),
       resizeToAvoidBottomInset: true,
       body: Container(
         decoration: BoxDecoration(

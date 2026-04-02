@@ -72,6 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF1A1A2E) : const Color(0xFFE0F2F1),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(

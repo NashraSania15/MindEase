@@ -54,6 +54,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final fieldHintStyle = TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey);
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF1A1A2E) : const Color(0xFFE0F2F1),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(

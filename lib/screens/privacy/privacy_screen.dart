@@ -12,6 +12,7 @@ class PrivacyScreen extends StatelessWidget {
     final subtextColor = isDark ? Colors.grey.shade400 : const Color(0xFF7A7A7A);
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0D0D1A) : const Color(0xFFEDE7F6),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(

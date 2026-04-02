@@ -115,6 +115,7 @@ class _FinalAnalysisScreenState extends State<FinalAnalysisScreen> {
     }
 
     return Scaffold(
+      backgroundColor: bgGradient.last,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -154,10 +155,23 @@ class _FinalAnalysisScreenState extends State<FinalAnalysisScreen> {
                             const CircularProgressIndicator(
                               color: Color(0xFF7AD7C1),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 24),
                             Text(
-                              'Analyzing all your inputs...',
-                              style: TextStyle(color: subtextColor, fontSize: 16),
+                              'Syncing all your inputs...',
+                              style: TextStyle(
+                                color: textColor,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 40),
+                              child: Text(
+                                'This takes a bit longer because we are processing text, voice, and face simultaneously using 3 AI models.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: subtextColor, fontSize: 14),
+                              ),
                             ),
                           ],
                         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../auth/login_screen.dart';
 import '../privacy/privacy_screen.dart';
+import '../tour/app_tour_screen.dart';
 import '../../services/prefs_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -13,6 +14,25 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _controller = PageController();
   int currentIndex = 0;
+  double _pageOffset = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() {
+      if (mounted) {
+        setState(() {
+          _pageOffset = _controller.page ?? _controller.initialPage.toDouble();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   final List<_OnboardData> pages = [
     _OnboardData(
@@ -89,48 +109,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: PageView.builder(
-        controller: _controller,
-        itemCount: pages.length,
-        onPageChanged: (index) {
-          setState(() => currentIndex = index);
-        },
-        itemBuilder: (context, index) {
-          return _OnboardPage(
-            data: pages[index],
-            currentIndex: currentIndex,
-            total: pages.length,
-            onNext: () {
-              if (index == pages.length - 1) {
-                _finishOnboarding(goToPrivacy: true);
-              } else {
-                _controller.nextPage(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.ease,
-                );
-              }
-            },
-            onSkip: () {
-              _finishOnboarding();
-            },
-          );
-        },
-      ),
+    return AppTourScreen(
+      onDone: () => _finishOnboarding(goToPrivacy: true),
     );
   }
 }
 
 class _OnboardPage extends StatelessWidget {
   final _OnboardData data;
+  final int index;
   final int currentIndex;
+  final double pageOffset;
   final int total;
   final VoidCallback onNext;
   final VoidCallback onSkip;
 
   const _OnboardPage({
     required this.data,
+    required this.index,
     required this.currentIndex,
+    required this.pageOffset,
     required this.total,
     required this.onNext,
     required this.onSkip,
@@ -138,6 +136,7 @@ class _OnboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final diff = (pageOffset - index);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF4A4A4A);
     final subtextColor = isDark ? Colors.grey.shade400 : const Color(0xFF7A7A7A);
@@ -160,113 +159,164 @@ class _OnboardPage extends StatelessWidget {
 
             const Spacer(),
 
-            Container(
-              height: 180,
-              width: 180,
-              decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.1)
-                    : Colors.white.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
+            Transform.translate(
+              offset: Offset(diff * 120, diff.abs() * 50),
+              child: Transform.scale(
+                scale: (1 - diff.abs() * 0.3).clamp(0.0, 1.0),
+                child: Opacity(
+                  opacity: (1 - diff.abs() * 0.8).clamp(0.0, 1.0),
+                  child: Container(
+                    height: 200,
+                    width: 200,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Colors.white.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(40),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+                          blurRadius: 30,
+                          offset: const Offset(0, 15),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Image.asset(data.image, fit: BoxFit.contain),
+                    ),
                   ),
-                ],
+                ),
               ),
-              child: const Center(
-                child: Icon(Icons.favorite, size: 60, color: Colors.green),
+            ),
+
+            const SizedBox(height: 50),
+
+            Transform.translate(
+              offset: Offset(diff * 80, 0),
+              child: Opacity(
+                opacity: (1 - diff.abs() * 0.5).clamp(0.0, 1.0),
+                child: Text(
+                  data.title,
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w700,
+                    color: textColor,
+                    letterSpacing: -0.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            Transform.translate(
+              offset: Offset(diff * 50, 0),
+              child: Opacity(
+                opacity: (1 - diff.abs() * 0.5).clamp(0.0, 1.0),
+                child: Text(
+                  data.subtitle,
+                  style: TextStyle(
+                    fontSize: 17,
+                    height: 1.4,
+                    color: subtextColor,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
 
             const SizedBox(height: 40),
 
-            Text(
-              data.title,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w600,
-                color: textColor,
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 12),
-
-            Text(
-              data.subtitle,
-              style: TextStyle(
-                fontSize: 16,
-                color: subtextColor,
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            const Spacer(),
-
+            // Animated dot indicator
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                total,
-                    (index) => Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: currentIndex == index ? 24 : 8,
+              children: List.generate(total, (i) {
+                final isActive = currentIndex == i;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 350),
+                  curve: Curves.fastOutSlowIn,
+                  margin: const EdgeInsets.symmetric(horizontal: 5),
+                  width: isActive ? 32 : 8,
                   height: 8,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    gradient: currentIndex == index
+                    borderRadius: BorderRadius.circular(12),
+                    gradient: isActive
                         ? const LinearGradient(
-                      colors: [
-                        Color(0xFF9BE7C4),
-                        Color(0xFF7AD7C1),
-                      ],
-                    )
+                            colors: [Color(0xFF9BE7C4), Color(0xFF60C8B5)],
+                          )
                         : null,
-                    color: currentIndex == index
+                    color: isActive
                         ? null
                         : isDark
-                            ? Colors.white.withValues(alpha: 0.2)
-                            : Colors.white.withValues(alpha: 0.6),
+                            ? Colors.white.withValues(alpha: 0.25)
+                            : Colors.black.withValues(alpha: 0.15),
                   ),
-                ),
-              ),
+                );
+              }),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 36),
 
-            Container(
-              width: double.infinity,
-              height: 56,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(28),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF9BE7C4), Color(0xFF7AD7C1)],
-                ),
-              ),
-              child: TextButton(
-                onPressed: onNext,
-                child: Text(
-                  data.buttonText,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
+            // CTA button
+            GestureDetector(
+              onTap: onNext,
+              child: Container(
+                width: double.infinity,
+                height: 60,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF9BE7C4), Color(0xFF60C8B5)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF7AD7C1).withOpacity(0.45),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      data.buttonText,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Icon(Icons.arrow_forward_rounded,
+                        color: Colors.white, size: 22),
+                  ],
                 ),
               ),
             ),
 
             if (data.showLogin) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
               TextButton(
                 onPressed: onSkip,
-                child: Text('Login',
-                    style: TextStyle(color: subtextColor)),
+                child: Text(
+                  'Already have an account? Login',
+                  style: TextStyle(
+                    color: subtextColor,
+                    fontSize: 14,
+                    decoration: TextDecoration.underline,
+                    decorationColor: subtextColor,
+                  ),
+                ),
               ),
             ],
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 32),
           ],
         ),
       ),
