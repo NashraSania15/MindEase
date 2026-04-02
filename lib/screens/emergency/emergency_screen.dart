@@ -83,9 +83,11 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       },
     );
 
-    nameCtrl.dispose();
-    phoneCtrl.dispose();
-    relationCtrl.dispose();
+    Future.delayed(const Duration(milliseconds: 400), () {
+      nameCtrl.dispose();
+      phoneCtrl.dispose();
+      relationCtrl.dispose();
+    });
 
     if (saved == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -121,9 +123,11 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       },
     );
 
-    nameCtrl.dispose();
-    phoneCtrl.dispose();
-    relationCtrl.dispose();
+    Future.delayed(const Duration(milliseconds: 400), () {
+      nameCtrl.dispose();
+      phoneCtrl.dispose();
+      relationCtrl.dispose();
+    });
 
     if (saved == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -220,12 +224,15 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                             );
                             if (!ctx.mounted) return;
                             Navigator.pop(ctx, true);
-                          } catch (_) {
+                          } catch (e) {
                             if (!ctx.mounted) return;
-                            setDS(() {
-                              loading = false;
-                              errorMsg = 'Failed to save. Try again.';
-                            });
+                            Navigator.pop(ctx, false);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error: \$e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
                           }
                         },
                   child: loading

@@ -43,6 +43,7 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
         result.stressLevel,
         emotion: result.emotion,
       );
+      CombinedStressService.instance.latestText = text;
       setState(() {
         _result = result;
         _isLoading = false;

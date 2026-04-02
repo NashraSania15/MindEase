@@ -1,3 +1,5 @@
+import 'dart:io';
+
 /// In-memory singleton that tracks the latest modality results from the
 /// current session. Call the update methods after each analysis completes
 /// and read [combinedScore] to get the merged final stress (0–100).
@@ -13,6 +15,10 @@ class CombinedStressService {
   double _voiceStress = 0;
   double _textStress = 0;
   String _latestEmotion = '';
+
+  File? latestFaceFile;
+  File? latestAudioFile;
+  String latestText = '';
 
   // ── Getters ──────────────────────────────────────────────────────────────
 
@@ -63,5 +69,8 @@ class CombinedStressService {
     _voiceStress = 0;
     _textStress = 0;
     _latestEmotion = '';
+    latestFaceFile = null;
+    latestAudioFile = null;
+    latestText = '';
   }
 }

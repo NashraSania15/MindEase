@@ -122,6 +122,7 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
         result.stressLevel,
         emotion: result.emotion,
       );
+      CombinedStressService.instance.latestAudioFile = File(_recordingPath!);
       setState(() {
         _result = result;
         _isLoading = false;
@@ -235,7 +236,6 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
     final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
 

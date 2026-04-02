@@ -52,28 +52,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .collection('diary_entries')
           .get();
 
-      // Compute real average stress from stress_history
+      // Compute current latest stress
       String stress = 'No data yet';
       final historySnap = await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
           .collection('stress_history')
+          .orderBy('timestamp', descending: true)
+          .limit(1)
           .get();
 
       if (historySnap.docs.isNotEmpty) {
-        double totalStress = 0;
-        int count = 0;
-        for (final doc in historySnap.docs) {
-          final data = doc.data();
-          final stressVal = StressHistoryService.computeStress(data);
-          if (stressVal > 0) {
-            totalStress += stressVal;
-            count++;
-          }
-        }
-        if (count > 0) {
-          final avg = totalStress / count;
-          stress = '${avg.toStringAsFixed(1)}%';
+        final data = historySnap.docs.first.data();
+        final stressVal = StressHistoryService.computeStress(data);
+        if (stressVal > 0) {
+          stress = '${stressVal.toStringAsFixed(0)}%';
         }
       }
 
@@ -236,11 +229,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            _ProfileStat(
-                              title: 'Avg Stress',
-                              value: _stressValue,
-                              icon: Icons.trending_down,
-                            ),
+                              _ProfileStat(
+                                title: 'Current Stress',
+                                value: _stressValue,
+                                icon: Icons.monitor_heart,
+                              ),
                             const _ProfileStat(
                               title: 'Best Mood',
                               value: '😊',

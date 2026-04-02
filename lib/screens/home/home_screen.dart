@@ -13,6 +13,7 @@ import '../ai/ai_chat_screen.dart';
 import '../meditation/meditation_screen.dart';
 import '../goals/goals_screen.dart';
 import '../support/support_screen.dart';
+import '../combined/final_analysis_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -547,6 +548,22 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         ],
                       ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // ── Combined Result ──
+                    _ActionButton(
+                      icon: Icons.analytics_outlined,
+                      label: 'Combined Result',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const FinalAnalysisScreen(),
+                          ),
+                        );
+                      },
                     ),
 
                     const SizedBox(height: 20),

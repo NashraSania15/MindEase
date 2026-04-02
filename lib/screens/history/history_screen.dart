@@ -225,16 +225,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     // Compute stats
     final entryCount = filtered.length;
-    double totalStress = 0;
     double bestStress = 100;
-
+    
     for (final doc in filtered) {
       final stress = StressHistoryService.computeStress(doc.data());
-      totalStress += stress;
       if (stress < bestStress && stress > 0) bestStress = stress;
     }
 
-    final avgStress = entryCount > 0 ? totalStress / entryCount : 0.0;
+    final currentStress = filtered.isNotEmpty
+        ? StressHistoryService.computeStress(filtered.first.data())
+        : 0.0;
     if (entryCount == 0) bestStress = 0;
     final bestEmoji = entryCount == 0
         ? '—'
@@ -248,9 +248,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
           children: [
             Expanded(
               child: _StatCard(
-                title: 'Avg Stress',
-                value: '${avgStress.toStringAsFixed(0)}%',
-                icon: Icons.trending_down,
+                title: 'Current Stress',
+                value: entryCount > 0 ? '${currentStress.toStringAsFixed(0)}%' : '—',
+                icon: Icons.monitor_heart,
                 color: Colors.green,
               ),
             ),
