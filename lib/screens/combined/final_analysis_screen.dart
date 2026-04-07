@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/final_analysis_service.dart';
 import '../../services/combined_stress_service.dart';
 import '../../services/stress_history_service.dart';
+import '../../services/report_service.dart';
+import '../../models/report_model.dart';
 
 class FinalAnalysisScreen extends StatefulWidget {
   const FinalAnalysisScreen({super.key});
@@ -58,16 +62,38 @@ class _FinalAnalysisScreenState extends State<FinalAnalysisScreen> {
     final messenger = ScaffoldMessenger.of(context);
     try {
       final combined = CombinedStressService.instance;
-      // The prompt asks to save this result for dashboard averaging.
-      // We'll save the exact modalities we measured.
-      await StressHistoryService.saveStressResult(
-        faceStress: combined.faceStress,
-        voiceStress: combined.voiceStress,
-        textStress: combined.textStress,
+      final user = FirebaseAuth.instance.currentUser;
+      final userName = user?.displayName ?? "User"; // Fallback to "User" if name not set
+
+      // 1. Create ReportModel object
+      final report = ReportModel(
+        name: userName,
+        date: DateFormat('MMM dd, yyyy • hh:mm a').format(DateTime.now()),
+        face: combined.faceStress.round(),
+        voice: combined.voiceStress.round(),
+        text: combined.textStress.round(),
+        combined: _result!.stressLevel.round(),
+        emotion: _result!.emotion,
+        reason: _result!.reason,
+        future: _result!.futureSimulation,
       );
+
+      // 2. Save locally (use shared_preferences)
+      await ReportService.saveReport(report);
+
+      // 3. Save to dashboard history (Part 3)
+      await StressHistoryService.saveStressResult(
+        combinedStress: _result!.stressLevel,
+        emotion: _result!.emotion,
+      );
+
       if (mounted) {
+        // Notification
         messenger.showSnackBar(
-          const SnackBar(content: Text('Overall Result saved to Dashboard ✅')),
+          const SnackBar(
+            content: Text('Report saved. Check in Profile'),
+            backgroundColor: Color(0xFF7AD7C1),
+          ),
         );
         Navigator.pop(context); // Go back to Home
       }
@@ -219,7 +245,11 @@ class _FinalAnalysisScreenState extends State<FinalAnalysisScreen> {
   Widget _buildResultContent(bool isDark, Color cardColor, Color textColor, Color subtextColor) {
     final stressValue = _result!.stressLevel.clamp(0, 100).toDouble();
     final color = _stressColor(stressValue);
-    final stressLbl = _stressLabel(stressValue);
+    final stressLbl = _result!.stressCategory.isNotEmpty ? _result!.stressCategory : _stressLabel(stressValue);
+
+    final futureText = _result!.futureSimulation.isNotEmpty
+        ? _result!.futureSimulation
+        : "Your current mental state appears stable. Continue maintaining healthy habits for long-term well-being.";
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -276,24 +306,31 @@ class _FinalAnalysisScreenState extends State<FinalAnalysisScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
+                _sectionTitle('Emotion', textColor),
+                const SizedBox(height: 8),
+                Text(
+                  _result!.emotion,
+                  style: TextStyle(fontSize: 15, color: subtextColor, height: 1.4),
+                ),
+                const SizedBox(height: 20),
+                _sectionTitle('Reason', textColor),
+                const SizedBox(height: 8),
+                Text(
+                  _result!.reason.isNotEmpty ? _result!.reason : "No specific reason identified from inputs.",
+                  style: TextStyle(fontSize: 15, color: subtextColor, height: 1.4),
+                ),
+                const SizedBox(height: 20),
+                _sectionTitle('Future Simulation', textColor),
+                const SizedBox(height: 8),
+                Text(
+                  futureText,
+                  style: TextStyle(fontSize: 15, color: subtextColor, height: 1.4),
+                ),
+                const SizedBox(height: 20),
                 _sectionTitle('Message', textColor),
                 const SizedBox(height: 8),
                 Text(
                   _result!.message,
-                  style: TextStyle(fontSize: 15, color: subtextColor, height: 1.4),
-                ),
-                const SizedBox(height: 20),
-                _sectionTitle('Suggestion', textColor),
-                const SizedBox(height: 8),
-                Text(
-                  _result!.suggestion,
-                  style: TextStyle(fontSize: 15, color: subtextColor, height: 1.4),
-                ),
-                const SizedBox(height: 20),
-                _sectionTitle('Exercise', textColor),
-                const SizedBox(height: 8),
-                Text(
-                  _result!.exercise,
                   style: TextStyle(fontSize: 15, color: subtextColor, height: 1.4),
                 ),
               ],

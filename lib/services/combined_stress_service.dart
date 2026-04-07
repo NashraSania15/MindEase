@@ -12,6 +12,7 @@ class CombinedStressService {
   static final CombinedStressService instance = CombinedStressService._();
 
   double _faceStress = 0;
+  double _fatigueLevel = 0;
   double _voiceStress = 0;
   double _textStress = 0;
   String _latestEmotion = '';
@@ -23,6 +24,7 @@ class CombinedStressService {
   // ── Getters ──────────────────────────────────────────────────────────────
 
   double get faceStress => _faceStress;
+  double get fatigueLevel => _fatigueLevel;
   double get voiceStress => _voiceStress;
   double get textStress => _textStress;
   String get latestEmotion => _latestEmotion;
@@ -46,8 +48,9 @@ class CombinedStressService {
 
   // ── Update methods ───────────────────────────────────────────────────────
 
-  void updateFace(double stress, {String emotion = ''}) {
+  void updateFace(double stress, {double fatigue = 0, String emotion = ''}) {
     _faceStress = stress.clamp(0.0, 100.0);
+    _fatigueLevel = fatigue.clamp(0.0, 100.0);
     if (emotion.isNotEmpty) _latestEmotion = emotion;
   }
 
@@ -66,6 +69,7 @@ class CombinedStressService {
   /// Clear all cached values (e.g. on logout or new session).
   void reset() {
     _faceStress = 0;
+    _fatigueLevel = 0;
     _voiceStress = 0;
     _textStress = 0;
     _latestEmotion = '';

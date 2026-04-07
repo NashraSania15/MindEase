@@ -1,9 +1,9 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/stress_history_service.dart';
 import '../../services/emergency_service.dart';
+import '../../models/stress_entry.dart';
 
 import '../profile/profile_screen.dart';
 import '../face/face_analysis_screen.dart';
@@ -144,14 +144,14 @@ class _HomeScreenState extends State<HomeScreen>
 
                     const SizedBox(height: 20),
 
-                    // ── Stress Card — real-time from Firestore ──
-                    StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                        stream: StressHistoryService.latestTwoEntriesStream(),
+                    // ── Stress Card — from local tracking (Part 1, 2) ──
+                    StreamBuilder<List<StressEntry>>(
+                        stream: StressHistoryService.dailyStream,
                         builder: (context, snapshot) {
                         String emoji = '😊';
                         String label = 'Calm';
                         String levelText = 'Stress Level: Low';
-                        String percent = '—';
+                        String percent = '0%';
                         Color borderColor = const Color(0xFF9BE7C4);
                         Color bgTint = const Color(0xFF9BE7C4);
                         double stressVal = 0;
@@ -161,20 +161,16 @@ class _HomeScreenState extends State<HomeScreen>
                         String trendLabel = '';
                         Color trendColor = Colors.grey;
 
-                        if (snapshot.hasData &&
-                            snapshot.data!.docs.isNotEmpty) {
-                          final docs = snapshot.data!.docs;
-                          final latestData = docs.first.data();
-                          stressVal =
-                              StressHistoryService.computeStress(latestData);
+                        if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                          final entries = snapshot.data!;
+                          final latest = entries.last;
+                          stressVal = latest.combinedStress;
                           percent = '${stressVal.toStringAsFixed(0)}%';
 
                           // Compute trend from last 2 entries
-                          if (docs.length >= 2) {
-                            final prevData = docs[1].data();
-                            final prevStress =
-                                StressHistoryService.computeStress(prevData);
-                            final diff = stressVal - prevStress;
+                          if (entries.length >= 2) {
+                            final prev = entries[entries.length - 2];
+                            final diff = stressVal - prev.combinedStress;
 
                             if (diff > 5) {
                               trendIcon = '↑';
@@ -224,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen>
                             if (stressVal >= 75)
                               _EmergencyBanner(stressLevel: stressVal),
 
-                            // Stress card
+                            // Stress card (Part 2: BIG % from API)
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
@@ -293,7 +289,7 @@ class _HomeScreenState extends State<HomeScreen>
                                         ),
                                       ),
                                       const SizedBox(width: 8),
-                                      // Percent ring
+                                      // Percent circle: BIG Combined Stress % (Part 2)
                                       Container(
                                         height: 52,
                                         width: 52,
@@ -381,6 +377,22 @@ class _HomeScreenState extends State<HomeScreen>
 
                     // ── Mini Stress Graph ──
                     _MiniStressChart(cardColor: cardColor, textColor: textColor, subtextColor: subtextColor),
+
+                    const SizedBox(height: 16),
+
+                    // ── Combined Result ──
+                    _ActionButton(
+                      icon: Icons.analytics_outlined,
+                      label: 'Combined Result',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const FinalAnalysisScreen(),
+                          ),
+                        );
+                      },
+                    ),
 
                     const SizedBox(height: 24),
 
@@ -553,22 +565,6 @@ class _HomeScreenState extends State<HomeScreen>
 
                     const SizedBox(height: 20),
 
-                    // ── Combined Result ──
-                    _ActionButton(
-                      icon: Icons.analytics_outlined,
-                      label: 'Combined Result',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const FinalAnalysisScreen(),
-                          ),
-                        );
-                      },
-                    ),
-
-                    const SizedBox(height: 20),
-
                     // ── Support ──
                     _ActionButton(
                       icon: Icons.favorite,
@@ -644,14 +640,9 @@ class _MiniStressChart extends StatelessWidget {
     return const [Color(0xFF9BE7C4), Color(0xFF7AD7C1)];
   }
 
-  // Relative time label (e.g. "2 min ago", "1h ago", "3d ago").
-  static String _timeLabel(DateTime? dt) {
-    if (dt == null) return '—';
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
+  static String _timeLabel(String timestamp) {
+    if (timestamp.isEmpty) return '—';
+    return timestamp;
   }
 
   @override
@@ -703,30 +694,12 @@ class _MiniStressChart extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Chart body — StreamBuilder
-          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream: StressHistoryService.latestEntriesStream(3),
+          // Chart body — StreamBuilder (Part 4)
+          StreamBuilder<List<StressEntry>>(
+            stream: StressHistoryService.dailyStream,
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return SizedBox(
-                  height: 140,
-                  child: Center(
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: isDark
-                            ? const Color(0xFF9BE7C4)
-                            : const Color(0xFF7AD7C1),
-                      ),
-                    ),
-                  ),
-                );
-              }
-
-              final docs = snapshot.data?.docs ?? [];
-              if (docs.isEmpty) {
+              final entries = snapshot.data ?? [];
+              if (entries.isEmpty) {
                 return Container(
                   height: 140,
                   width: double.infinity,
@@ -759,22 +732,14 @@ class _MiniStressChart extends StatelessWidget {
                 );
               }
 
-              // Build entries in chronological order (oldest → newest).
-              final entries = docs.reversed.map((doc) {
-                final d = doc.data();
-                final stress =
-                    StressHistoryService.computeStress(d).clamp(0.0, 100.0);
-                final ts = (d['timestamp'] as Timestamp?)?.toDate();
-                return _StressEntry(stress: stress, time: ts);
-              }).toList();
-
+              final displayEntries = entries.length > 3 ? entries.sublist(entries.length - 3) : entries;
               const double barAreaHeight = 120;
 
               return SizedBox(
                 height: barAreaHeight + 40, // bars + labels
                 child: CustomPaint(
                   painter: _TrendLinePainter(
-                    entries: entries,
+                    entries: displayEntries,
                     barAreaHeight: barAreaHeight,
                     lineColor: isDark
                         ? Colors.white.withValues(alpha: 0.15)
@@ -782,10 +747,10 @@ class _MiniStressChart extends StatelessWidget {
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
-                    children: List.generate(entries.length, (i) {
-                      final e = entries[i];
+                    children: List.generate(displayEntries.length, (i) {
+                      final e = displayEntries[i];
                       final barHeight =
-                          (e.stress / 100.0 * barAreaHeight).clamp(12.0, barAreaHeight);
+                          (e.combinedStress / 100.0 * barAreaHeight).clamp(12.0, barAreaHeight);
 
                       return Expanded(
                         child: Padding(
@@ -795,40 +760,31 @@ class _MiniStressChart extends StatelessWidget {
                             children: [
                               // Stress value label
                               Text(
-                                '${e.stress.toStringAsFixed(0)}%',
+                                '${e.combinedStress.toStringAsFixed(0)}%',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: _barColor(e.stress),
+                                  color: _barColor(e.combinedStress),
                                 ),
                               ),
                               const SizedBox(height: 4),
                               // Animated bar
                               TweenAnimationBuilder<double>(
-                                tween: Tween(begin: 0, end: barHeight),
-                                duration: Duration(
-                                    milliseconds: 500 + (i * 150)),
+                                tween: Tween<double>(begin: 0, end: barHeight),
+                                duration: Duration(milliseconds: 500 + (i * 100)),
                                 curve: Curves.easeOutCubic,
-                                builder: (context, value, _) {
+                                builder: (context, val, child) {
                                   return Container(
-                                    height: value,
+                                    height: val,
                                     width: double.infinity,
                                     decoration: BoxDecoration(
-                                      borderRadius:
-                                          BorderRadius.circular(10),
+                                      borderRadius: const BorderRadius.vertical(
+                                          top: Radius.circular(8)),
                                       gradient: LinearGradient(
-                                        colors: _barGradient(e.stress),
+                                        colors: _barGradient(e.combinedStress),
                                         begin: Alignment.topCenter,
                                         end: Alignment.bottomCenter,
                                       ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: _barColor(e.stress)
-                                              .withValues(alpha: 0.3),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, 3),
-                                        ),
-                                      ],
                                     ),
                                   );
                                 },
@@ -836,7 +792,7 @@ class _MiniStressChart extends StatelessWidget {
                               const SizedBox(height: 6),
                               // Time label
                               Text(
-                                _timeLabel(e.time),
+                                _timeLabel(e.timestamp),
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: subtextColor,
@@ -859,17 +815,9 @@ class _MiniStressChart extends StatelessWidget {
   }
 }
 
-/// Simple data holder for a stress entry.
-class _StressEntry {
-  final double stress;
-  final DateTime? time;
-
-  const _StressEntry({required this.stress, this.time});
-}
-
 /// Paints a subtle connecting line between the tops of the bars.
 class _TrendLinePainter extends CustomPainter {
-  final List<_StressEntry> entries;
+  final List<StressEntry> entries;
   final double barAreaHeight;
   final Color lineColor;
 
@@ -898,7 +846,7 @@ class _TrendLinePainter extends CustomPainter {
     final path = ui.Path();
     for (int i = 0; i < entries.length; i++) {
       final x = (size.width / entries.length) * (i + 0.5);
-      final normalized = entries[i].stress / 100.0;
+      final normalized = entries[i].combinedStress / 100.0;
       final y = size.height - bottomOffset - (normalized * drawHeight);
 
       if (i == 0) {
@@ -916,9 +864,9 @@ class _TrendLinePainter extends CustomPainter {
 
     for (int i = 0; i < entries.length; i++) {
       final x = (size.width / entries.length) * (i + 0.5);
-      final normalized = entries[i].stress / 100.0;
+      final normalized = entries[i].combinedStress / 100.0;
       final y = size.height - bottomOffset - (normalized * drawHeight);
-      dotPaint.color = _MiniStressChart._barColor(entries[i].stress);
+      dotPaint.color = _MiniStressChart._barColor(entries[i].combinedStress);
       canvas.drawCircle(Offset(x, y), 4, dotPaint);
     }
   }

@@ -1,8 +1,9 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart' hide TextDirection;
 import '../../services/stress_history_service.dart';
+import '../../models/stress_entry.dart';
+
+
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -12,13 +13,12 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  int selectedTab = 0; // 0 = Daily, 1 = Weekly
+  int selectedTab = 0; // 0 = Daily, 1 = Weekly  
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black87;
     final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
 
     return Scaffold(
@@ -34,67 +34,73 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ),
         child: SafeArea(
-          child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream: StressHistoryService.historyStream(),
-            builder: (context, snapshot) {
-              final allDocs = snapshot.data?.docs ?? [];
+          child: StreamBuilder<List<StressEntry>>(
+            stream: StressHistoryService.dailyStream,
+            builder: (context, dailySnapshot) {
+              return StreamBuilder<List<WeeklyEntry>>(
+                stream: StressHistoryService.weeklyStream,
+                builder: (context, weeklySnapshot) {
+                  final dailyEntries = dailySnapshot.data ?? [];
+                  final weeklyHistory = weeklySnapshot.data ?? [];
 
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Title
-                    const Text(
-                      'Your Emotional Journey',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title
+                        const Text(
+                          'Your Emotional Journey',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Track how your mood and stress change over time',
+                          style: TextStyle(color: subtextColor),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Daily / Weekly toggle
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: cardColor,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: isDark
+                                ? []
+                                : [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.04),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                          ),
+                          child: Row(
+                            children: [
+                              _toggleButton('Daily', 0),
+                              _toggleButton('Weekly', 1),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Real-time chart
+                        _buildChart(dailyEntries, weeklyHistory),
+
+                        const SizedBox(height: 20),
+
+                        // Stats + entries
+                        _buildContent(dailyEntries, weeklyHistory),
+                      ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Track how your mood and stress change over time',
-                      style: TextStyle(color: subtextColor),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Daily / Weekly toggle
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: cardColor,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: isDark
-                            ? []
-                            : [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                      ),
-                      child: Row(
-                        children: [
-                          _toggleButton('Daily', 0),
-                          _toggleButton('Weekly', 1),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Real-time chart
-                    _buildChart(allDocs),
-
-                    const SizedBox(height: 20),
-
-                    // Stats + entries
-                    _buildContent(allDocs),
-                  ],
-                ),
+                  );
+                }
               );
             },
           ),
@@ -105,58 +111,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   // ─────────────────────────── CHART ──────────────────────────────────────────
 
-  Widget _buildChart(List<QueryDocumentSnapshot<Map<String, dynamic>>> allDocs) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
+  Widget _buildChart(List<StressEntry> daily, List<WeeklyEntry> weekly) {
     if (selectedTab == 0) {
-      // ── DAILY: show individual entries from last 7 days ──
-      final cutoff = today.subtract(const Duration(days: 7));
-      final points = <_ChartPoint>[];
-
-      for (final doc in allDocs.reversed) {
-        final ts = doc.data()['timestamp'] as Timestamp?;
-        if (ts == null) continue;
-        final date = ts.toDate();
-        if (date.isBefore(cutoff)) continue;
-        final stress = StressHistoryService.computeStress(doc.data());
-        points.add(_ChartPoint(date: date, stress: stress));
-      }
+      // ── DAILY: show individual entries from today ──
+      final points = daily.map((e) => _ChartPoint(
+        label: e.timestamp, 
+        stress: e.combinedStress
+      )).toList();
 
       return _chartContainer(
-        title: 'Daily Stress Trend',
+        title: 'Today\'s Stress Trend',
         points: points,
-        labelFormatter: (d) => DateFormat('MM/dd').format(d),
       );
     } else {
-      // ── WEEKLY: group by week (last 4 weeks), average per week ──
-      final cutoff = today.subtract(const Duration(days: 28));
-      final weekBuckets = <int, List<double>>{};
-
-      for (final doc in allDocs) {
-        final ts = doc.data()['timestamp'] as Timestamp?;
-        if (ts == null) continue;
-        final date = ts.toDate();
-        if (date.isBefore(cutoff)) continue;
-        final weeksAgo = today.difference(DateTime(date.year, date.month, date.day)).inDays ~/ 7;
-        weekBuckets.putIfAbsent(weeksAgo, () => []);
-        weekBuckets[weeksAgo]!.add(StressHistoryService.computeStress(doc.data()));
-      }
-
-      final points = <_ChartPoint>[];
-      for (int w = 3; w >= 0; w--) {
-        final weekStart = today.subtract(Duration(days: w * 7 + 6));
-        final stresses = weekBuckets[w] ?? [];
-        final avg = stresses.isNotEmpty
-            ? stresses.reduce((a, b) => a + b) / stresses.length
-            : 0.0;
-        points.add(_ChartPoint(date: weekStart, stress: avg));
-      }
+      // ── WEEKLY: show daily averages from the last few days ──
+      final points = weekly.map((w) {
+        final avg = w.entries.fold<double>(0, (sum, e) => sum + e.combinedStress) / w.entries.length;
+        return _ChartPoint(label: w.day.substring(0, 3), stress: avg);
+      }).toList();
 
       return _chartContainer(
-        title: 'Weekly Stress Trend',
+        title: 'Weekly Average Trend',
         points: points,
-        labelFormatter: (d) => 'W${DateFormat('MM/dd').format(d)}',
       );
     }
   }
@@ -164,7 +140,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _chartContainer({
     required String title,
     required List<_ChartPoint> points,
-    required String Function(DateTime) labelFormatter,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
@@ -202,7 +177,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   )
                 : _SimpleLineChart(
                     points: points,
-                    labelFormatter: labelFormatter,
                   ),
           ),
         ],
@@ -212,236 +186,146 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   // ─────────────────────────── CONTENT ────────────────────────────────────────
 
-  Widget _buildContent(List<QueryDocumentSnapshot<Map<String, dynamic>>> allDocs) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final maxDays = selectedTab == 0 ? 7 : 28;
-    final cutoff = today.subtract(Duration(days: maxDays));
+  Widget _buildContent(List<StressEntry> daily, List<WeeklyEntry> weekly) {
+    if (selectedTab == 0) {
+      // Today Stats
+      final latestStress = daily.isNotEmpty ? daily.last.combinedStress : 0.0;
+      final count = daily.length;
+      
+      String statusEmoji = '😊';
+      if (latestStress >= 80) statusEmoji = '😨';
+      else if (latestStress >= 60) statusEmoji = '😟';
+      else if (latestStress >= 30) statusEmoji = '😐';
 
-    final filtered = allDocs.where((doc) {
-      final ts = doc.data()['timestamp'] as Timestamp?;
-      if (ts == null) return false;
-      return ts.toDate().isAfter(cutoff);
-    }).toList();
-
-    // Compute stats
-    final entryCount = filtered.length;
-    double bestStress = 100;
-    
-    for (final doc in filtered) {
-      final stress = StressHistoryService.computeStress(doc.data());
-      if (stress < bestStress && stress > 0) bestStress = stress;
-    }
-
-    final currentStress = filtered.isNotEmpty
-        ? StressHistoryService.computeStress(filtered.first.data())
-        : 0.0;
-    if (entryCount == 0) bestStress = 0;
-    final bestEmoji = entryCount == 0
-        ? '—'
-        : (bestStress < 30 ? '😊' : (bestStress < 60 ? '😐' : '😔'));
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Stats row
-        Row(
-          children: [
-            Expanded(
-              child: _StatCard(
-                title: 'Current Stress',
-                value: entryCount > 0 ? '${currentStress.toStringAsFixed(0)}%' : '—',
-                icon: Icons.monitor_heart,
-                color: Colors.green,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _StatCard(
-                title: 'Best Mood',
-                value: bestEmoji,
-                icon: Icons.emoji_emotions,
-                color: Colors.orange,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _StatCard(
-                title: 'Entries',
-                value: '$entryCount',
-                icon: Icons.book,
-                color: Colors.blue,
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 24),
-
-        // Daily tab → show recent individual entries
-        // Weekly tab → show aggregated weekly summaries only
-        if (selectedTab == 0) ...[
-          const Text(
-            'Recent Entries',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          if (filtered.isEmpty)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'No entries yet. Analyze your stress to see results here.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _StatCard(
+                  title: 'Latest Stress',
+                  value: daily.isNotEmpty ? '${latestStress.toStringAsFixed(0)}%' : '—',
+                  icon: Icons.monitor_heart,
+                  color: Colors.green,
                 ),
               ),
-            ),
-          ...filtered.map((doc) {
-            final d = doc.data();
-            final ts = d['timestamp'] as Timestamp?;
-            final date = ts != null
-                ? DateFormat('MMM d, h:mm a').format(ts.toDate())
-                : '—';
-            final stress = StressHistoryService.computeStress(d);
-
-            String mood;
-            if (stress >= 80) {
-              mood = '😨 High';
-            } else if (stress >= 60) {
-              mood = '😟 Stressed';
-            } else if (stress >= 30) {
-              mood = '😐 Moderate';
-            } else {
-              mood = '😊 Calm';
-            }
-
-            return _entryTile(
-              date: date,
-              mood: mood,
-              stress: '${stress.toStringAsFixed(0)}%',
-            );
-          }),
-        ] else ...[
-          // Weekly aggregated view
+              const SizedBox(width: 12),
+              Expanded(
+                child: _StatCard(
+                  title: 'Today State',
+                  value: statusEmoji,
+                  icon: Icons.emoji_emotions,
+                  color: Colors.orange,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _StatCard(
+                  title: 'Analyses',
+                  value: '$count',
+                  icon: Icons.assignment_turned_in,
+                  color: Colors.blue,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
           const Text(
-            'Weekly Summary',
+            'Today\'s Entries',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
-          ..._buildWeeklySummaries(allDocs),
+          if (daily.isEmpty)
+            const Center(child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('No entries today yet.', style: TextStyle(color: Colors.grey)),
+            )),
+          ...daily.reversed.map((e) => _entryTile(
+            date: e.timestamp,
+            mood: e.emotion.isNotEmpty ? e.emotion : 'Analyzed',
+            stress: '${e.combinedStress.toStringAsFixed(0)}%',
+          )),
         ],
-      ],
-    );
+      );
+    } else {
+      // Weekly Content
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Weekly History',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          if (weekly.isEmpty)
+            const Center(child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('No historical data yet.', style: TextStyle(color: Colors.grey)),
+            )),
+          ...weekly.reversed.map((w) {
+            final avg = w.entries.fold<double>(0, (sum, e) => sum + e.combinedStress) / w.entries.length;
+            String emoji = '😊';
+            if (avg >= 80) emoji = '😨';
+            else if (avg >= 60) emoji = '😟';
+            else if (avg >= 30) emoji = '😐';
+
+            return _weeklyTile(
+              label: w.day,
+              date: w.date,
+              avg: avg,
+              count: w.entries.length,
+              emoji: emoji,
+            );
+          }),
+        ],
+      );
+    }
   }
 
-  List<Widget> _buildWeeklySummaries(
-      List<QueryDocumentSnapshot<Map<String, dynamic>>> allDocs) {
+  Widget _weeklyTile({
+    required String label,
+    required String date,
+    required double avg,
+    required int count,
+    required String emoji,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF1E1E2C) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
     final subtextColor = isDark ? Colors.grey.shade400 : Colors.grey;
 
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final summaries = <Widget>[];
-
-    for (int w = 0; w < 4; w++) {
-      final weekEnd = today.subtract(Duration(days: w * 7));
-      final weekStart = today.subtract(Duration(days: w * 7 + 6));
-
-      final weekDocs = allDocs.where((doc) {
-        final ts = doc.data()['timestamp'] as Timestamp?;
-        if (ts == null) return false;
-        final d = ts.toDate();
-        return !d.isBefore(weekStart) && !d.isAfter(weekEnd.add(const Duration(days: 1)));
-      }).toList();
-
-      if (weekDocs.isEmpty) continue;
-
-      final stresses = weekDocs.map((d) => StressHistoryService.computeStress(d.data())).toList();
-      final avg = stresses.reduce((a, b) => a + b) / stresses.length;
-      final label = '${DateFormat('MMM d').format(weekStart)} – ${DateFormat('MMM d').format(weekEnd)}';
-
-      String emoji;
-      if (avg >= 80) {
-        emoji = '😨';
-      } else if (avg >= 60) {
-        emoji = '😟';
-      } else if (avg >= 30) {
-        emoji = '😐';
-      } else {
-        emoji = '😊';
-      }
-
-      summaries.add(
-        Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: isDark
-                ? []
-                : [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-          ),
-          child: Row(
-            children: [
-              Text(emoji, style: const TextStyle(fontSize: 22)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: textColor)),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${weekDocs.length} entries · Avg ${avg.toStringAsFixed(0)}%',
-                      style: TextStyle(color: subtextColor, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                '${avg.toStringAsFixed(0)}%',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                  color: avg >= 60
-                      ? const Color(0xFFE53935)
-                      : avg >= 30
-                          ? const Color(0xFFFFA726)
-                          : const Color(0xFF43A047),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (summaries.isEmpty) {
-      summaries.add(
-        const Center(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Text(
-              'No data in the last 4 weeks.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 24)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('$label, $date', style: TextStyle(fontWeight: FontWeight.w600, color: textColor)),
+                Text('$count entries recorded', style: TextStyle(color: subtextColor, fontSize: 12)),
+              ],
             ),
           ),
-        ),
-      );
-    }
-
-    return summaries;
+          Text(
+            '${avg.toStringAsFixed(0)}%',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+              color: avg >= 60 ? Colors.red : (avg >= 30 ? Colors.orange : Colors.green),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // ─────────────────────────── SHARED WIDGETS ────────────────────────────────
@@ -523,18 +407,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
 // ═══════════════════════════ SIMPLE LINE CHART ═══════════════════════════════
 
 class _ChartPoint {
-  final DateTime date;
+  final String label;
   final double stress;
-  const _ChartPoint({required this.date, required this.stress});
+  const _ChartPoint({required this.label, required this.stress});
 }
 
 class _SimpleLineChart extends StatelessWidget {
   final List<_ChartPoint> points;
-  final String Function(DateTime) labelFormatter;
 
   const _SimpleLineChart({
+    super.key,
     required this.points,
-    required this.labelFormatter,
   });
 
   @override
@@ -554,7 +437,6 @@ class _SimpleLineChart extends StatelessWidget {
             points: points,
             chartHeight: chartH,
             maxStress: maxStress,
-            labelFormatter: labelFormatter,
           ),
         );
       },
@@ -566,13 +448,11 @@ class _ChartPainter extends CustomPainter {
   final List<_ChartPoint> points;
   final double chartHeight;
   final double maxStress;
-  final String Function(DateTime) labelFormatter;
 
   _ChartPainter({
     required this.points,
     required this.chartHeight,
     required this.maxStress,
-    required this.labelFormatter,
   });
 
   @override
@@ -669,7 +549,7 @@ class _ChartPainter extends CustomPainter {
       );
 
       // X-axis label
-      final lbl = labelFormatter(points[i].date);
+      final lbl = points[i].label;
       final tp = TextPainter(
         text: TextSpan(text: lbl, style: labelStyle),
         textDirection: ui.TextDirection.ltr,

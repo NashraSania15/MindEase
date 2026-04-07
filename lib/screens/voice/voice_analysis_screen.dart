@@ -16,16 +16,18 @@ class VoiceAnalysisScreen extends StatefulWidget {
 
 class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
   int step = 0; // 0-idle, 1-recording, 2-result
-  int seconds = 0;
+  int secondsRemaining = 10;
 
   final AudioRecorder _recorder = AudioRecorder();
   Timer? _timer;
   String? _recordingPath;
+  Color subtextColor = Colors.grey;
 
   // API state
   bool _isLoading = false;
   VoiceAnalysisResult? _result;
   String? _errorMessage;
+
   bool _isSaving = false;
 
   @override
@@ -38,6 +40,7 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
   // ── Recording ─────────────────────────────────────────────────────────────
 
   Future<void> _startRecording() async {
+    if (_isLoading) return;
     try {
       if (await _recorder.hasPermission()) {
         final dir = await getTemporaryDirectory();
@@ -55,16 +58,23 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
 
         setState(() {
           step = 1;
-          seconds = 0;
+          secondsRemaining = 10;
           _recordingPath = path;
           _result = null;
           _errorMessage = null;
         });
 
         _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-          setState(() {
-            seconds = t.tick;
-          });
+          if (mounted) {
+            setState(() {
+              if (secondsRemaining > 1) {
+                secondsRemaining--;
+              } else {
+                secondsRemaining = 0;
+                _stopRecording();
+              }
+            });
+          }
         });
       } else {
         setState(() {
@@ -91,11 +101,28 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
       }
     } catch (_) {}
 
-    if (_recordingPath == null ||
-        !await File(_recordingPath!).exists()) {
+    if (_recordingPath == null) {
       setState(() {
         step = 0;
         _errorMessage = 'No recording found. Please try again.';
+      });
+      return;
+    }
+
+    final voiceFile = File(_recordingPath!);
+    if (!await voiceFile.exists()) {
+      setState(() {
+        step = 0;
+        _errorMessage = 'No recording found. Please try again.';
+      });
+      return;
+    }
+
+    // Check file size (10s WAV at 16kHz mono should be ~320KB, 1KB is definitely silent/empty)
+    if (await voiceFile.length() < 1024) {
+      setState(() {
+        step = 0;
+        _errorMessage = 'No voice detected. Please try again.';
       });
       return;
     }
@@ -129,7 +156,8 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        // Map any API/Server error to the requested user-friendly message
+        _errorMessage = 'No voice detected. Please try again.';
         _isLoading = false;
       });
     }
@@ -144,9 +172,7 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
     try {
       final combined = CombinedStressService.instance;
       await StressHistoryService.saveStressResult(
-        faceStress: combined.faceStress,
-        voiceStress: _result!.stressLevel,
-        textStress: combined.textStress,
+        combinedStress: _result!.stressLevel,
         emotion: _result!.emotion,
       );
       if (mounted) {
@@ -306,8 +332,12 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Analyzing your voice…',
-                          style: TextStyle(color: subtextColor),
+                          'Analyzing your voice...',
+                          style: TextStyle(
+                            color: subtextColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
@@ -340,7 +370,7 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
         borderRadius: BorderRadius.circular(18),
       ),
       child: Text(
-        'Speak freely for 10–15 seconds',
+        'Speak clearly for 10 seconds',
         style: TextStyle(fontSize: 16, color: textColor),
       ),
     );
@@ -353,15 +383,18 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
     return Column(
       children: [
         GestureDetector(
-          onTap: _startRecording,
-          child: _micCircle(
-            color1: const Color(0xFF9BE7C4),
-            color2: const Color(0xFF7AD7C1),
-            icon: Icons.mic,
+          onTap: _isLoading ? null : _startRecording,
+          child: Opacity(
+            opacity: _isLoading ? 0.6 : 1.0,
+            child: _micCircle(
+              color1: const Color(0xFF9BE7C4),
+              color2: const Color(0xFF7AD7C1),
+              icon: Icons.mic,
+            ),
           ),
         ),
         const SizedBox(height: 14),
-        Text('Tap to start recording', style: TextStyle(color: textColor)),
+        Text('Tap to start 10s recording', style: TextStyle(color: textColor)),
       ],
     );
   }
@@ -373,6 +406,18 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
     return Column(
       children: [
         const SizedBox(height: 20),
+
+        // Countdown display
+        Text(
+          'Remaining: ${secondsRemaining}s',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: secondsRemaining <= 3 ? Colors.redAccent : textColor,
+          ),
+        ),
+
+        const SizedBox(height: 10),
 
         // Fake wave
         Row(
@@ -393,18 +438,16 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
 
         const SizedBox(height: 30),
 
-        GestureDetector(
-          onTap: _stopRecording,
-          child: _micCircle(
-            color1: Colors.redAccent,
-            color2: Colors.red,
-            icon: Icons.stop,
-          ),
+        _micCircle(
+          color1: Colors.redAccent,
+          color2: Colors.red,
+          icon: Icons.mic_rounded,
         ),
 
         const SizedBox(height: 14),
-        Text('${seconds}s', style: TextStyle(color: textColor)),
-        Text('Recording...', style: TextStyle(color: textColor)),
+        Text('Recording... Speak naturally', style: TextStyle(color: textColor, fontWeight: FontWeight.w500)),
+        const SizedBox(height: 4),
+        Text('Stay in a quiet place for better results', style: TextStyle(color: subtextColor, fontSize: 12)),
       ],
     );
   }
@@ -439,8 +482,8 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
             children: [
               // Title
               Text(
-                '🎙️ Voice Analysis Result',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textColor),
+                'Here’s your stress analysis',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
               ),
 
               const SizedBox(height: 16),
@@ -613,7 +656,20 @@ class _VoiceAnalysisScreenState extends State<VoiceAnalysisScreen> {
                 _errorMessage = null;
               });
             },
-            child: const Icon(Icons.refresh, color: Colors.red),
+            child: Row(
+              children: [
+                const Icon(Icons.refresh, color: Colors.red, size: 20),
+                const SizedBox(width: 4),
+                Text(
+                  'Retry',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'screens/auth/login_screen.dart';
 import 'screens/main/main_screen.dart';
 import 'firebase_options.dart';
-
-import 'screens/onboarding/onboarding_screen.dart';
 import 'services/prefs_service.dart';
 import 'services/theme_service.dart';
+import 'services/stress_history_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +19,7 @@ void main() async {
   }
   // Load saved theme (dark/light) before first frame to avoid flicker
   await ThemeService.initialize();
+  await StressHistoryService.init(); // Initialize local history
   runApp(const MindEaseApp());
 }
 

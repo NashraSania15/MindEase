@@ -51,6 +51,9 @@ dependencies:
   telephony: ^0.2.0
   camera: ^0.11.2+1
   showcaseview: ^5.0.1
+  pdf: ^3.11.3
+  printing: ^5.14.3
+  rxdart: ^0.28.0
 
 dev_dependencies:
   flutter_test:

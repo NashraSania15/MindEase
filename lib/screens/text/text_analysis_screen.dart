@@ -65,9 +65,7 @@ class _TextAnalysisScreenState extends State<TextAnalysisScreen> {
     try {
       final combined = CombinedStressService.instance;
       await StressHistoryService.saveStressResult(
-        faceStress: combined.faceStress,
-        voiceStress: combined.voiceStress,
-        textStress: _result!.stressLevel,
+        combinedStress: _result!.stressLevel,
         emotion: _result!.emotion,
       );
       if (mounted) {

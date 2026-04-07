@@ -4,16 +4,19 @@ import 'package:http/http.dart' as http;
 
 class FaceAnalysisResult {
   final double stressLevel; // 0–100
+  final double fatigueLevel; // 0–100
   final String emotion;
 
   const FaceAnalysisResult({
     required this.stressLevel,
+    required this.fatigueLevel,
     required this.emotion,
   });
 
   factory FaceAnalysisResult.fromJson(Map<String, dynamic> json) {
     return FaceAnalysisResult(
       stressLevel: (json['stress_level'] as num).toDouble(),
+      fatigueLevel: (json['fatigue_level'] as num? ?? 0.0).toDouble(),
       emotion: json['emotion'] as String,
     );
   }
