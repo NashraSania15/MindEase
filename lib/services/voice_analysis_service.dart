@@ -20,7 +20,7 @@ class VoiceAnalysisResult {
 }
 
 class VoiceAnalysisService {
-  static const String _baseUrl = 'http://192.168.31.145:5000';
+  static const String _baseUrl = 'http://192.168.0.111:5000';
 
   /// Sends an audio [file] to the backend and returns a [VoiceAnalysisResult].
   /// Throws a descriptive [Exception] on any failure.
@@ -34,7 +34,7 @@ class VoiceAnalysisService {
       );
 
       final streamedResponse =
-          await request.send().timeout(const Duration(seconds: 30));
+      await request.send().timeout(const Duration(seconds: 30));
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {

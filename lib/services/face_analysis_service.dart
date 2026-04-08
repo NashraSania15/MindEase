@@ -4,26 +4,23 @@ import 'package:http/http.dart' as http;
 
 class FaceAnalysisResult {
   final double stressLevel; // 0–100
-  final double fatigueLevel; // 0–100
   final String emotion;
 
   const FaceAnalysisResult({
     required this.stressLevel,
-    required this.fatigueLevel,
     required this.emotion,
   });
 
   factory FaceAnalysisResult.fromJson(Map<String, dynamic> json) {
     return FaceAnalysisResult(
       stressLevel: (json['stress_level'] as num).toDouble(),
-      fatigueLevel: (json['fatigue_level'] as num? ?? 0.0).toDouble(),
       emotion: json['emotion'] as String,
     );
   }
 }
 
 class FaceAnalysisService {
-  static const String _baseUrl = 'http://192.168.31.145:5000';
+  static const String _baseUrl = 'http://192.168.0.111:5000';
 
   /// Sends an image [file] to the backend and returns a [FaceAnalysisResult].
   /// Throws a descriptive [Exception] on any failure.
@@ -37,7 +34,7 @@ class FaceAnalysisService {
       );
 
       final streamedResponse =
-          await request.send().timeout(const Duration(seconds: 30));
+      await request.send().timeout(const Duration(seconds: 30));
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {

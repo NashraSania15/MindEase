@@ -41,7 +41,7 @@ class FinalAnalysisService {
       return 'http://10.0.2.2:5000';
     } else {
       // Replace with your actual local IP if running on a real iOS device, e.g., 'http://192.168.1.x:5000'
-      return 'http://127.0.0.1:5000';
+      return 'http://192.168.0.111:5000';
     }
   }
 
@@ -51,7 +51,7 @@ class FinalAnalysisService {
     File? audioFile,
   }) async {
     print('API CALL START');
-    final uri = Uri.parse('http://192.168.31.145:5000/combined-result');
+    final uri = Uri.parse('http://192.168.0.111:5000/combined-result');
 
     try {
       final request = http.MultipartRequest('POST', uri);
@@ -72,7 +72,7 @@ class FinalAnalysisService {
         );
       }
       
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 20));
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
       print('RESPONSE RECEIVED');
       
       final response = await http.Response.fromStream(streamedResponse);

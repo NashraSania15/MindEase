@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:camera/camera.dart';
 import '../../services/face_analysis_service.dart';
 import '../../services/stress_history_service.dart';
 import '../../services/combined_stress_service.dart';
+
 
 class FaceAnalysisScreen extends StatefulWidget {
   const FaceAnalysisScreen({super.key});
@@ -13,6 +15,9 @@ class FaceAnalysisScreen extends StatefulWidget {
 }
 
 class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
+  CameraController? _cameraController;
+  Timer? _captureTimer;
+  bool _isCameraReady = false;
   bool _isAnalyzing = false;
   bool _isSaving = false;
   String? _errorMessage;
@@ -21,53 +26,86 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
   FaceAnalysisResult? _result;
   File? _latestFrame;
 
-  Future<void> _captureAndAnalyze() async {
+  @override
+  void dispose() {
+    _captureTimer?.cancel();
+    _cameraController?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openCamera() async {
     setState(() {
       _errorMessage = null;
-      _isAnalyzing = true;
-      _result = null;
     });
 
     try {
-      final picker = ImagePicker();
-      final xFile = await picker.pickImage(
-        source: ImageSource.camera,
-        preferredCameraDevice: CameraDevice.front,
+      final cameras = await availableCameras();
+      final frontCamera = cameras.firstWhere(
+            (c) => c.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras.first,
       );
 
-      if (xFile == null) {
-        setState(() => _isAnalyzing = false);
-        return;
-      }
+      _cameraController = CameraController(
+        frontCamera,
+        ResolutionPreset.medium,
+        enableAudio: false,
+      );
 
-      final file = File(xFile.path);
-      setState(() => _latestFrame = file);
+      await _cameraController!.initialize();
+      if (!mounted) return;
 
-      final result = await FaceAnalysisService.analyzeFace(file);
+      setState(() {
+        _isCameraReady = true;
+      });
 
-      if (mounted) {
-        CombinedStressService.instance.updateFace(
-          result.stressLevel,
-          fatigue: result.fatigueLevel,
-          emotion: result.emotion,
-        );
-        CombinedStressService.instance.latestFaceFile = file;
-
-        setState(() {
-          _result = result;
-        });
-      }
+      _startAutoCapture();
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString().replaceFirst('Exception: ', '');
+          _errorMessage = 'Could not access camera. Please check permissions.';
         });
       }
-    } finally {
-      if (mounted) {
-        setState(() => _isAnalyzing = false);
-      }
     }
+  }
+
+  void _startAutoCapture() {
+    _captureTimer?.cancel();
+    _captureTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
+      if (!_isCameraReady || _isAnalyzing || !mounted) return;
+
+      try {
+        _isAnalyzing = true;
+        final xFile = await _cameraController!.takePicture();
+        final file = File(xFile.path);
+
+        final result = await FaceAnalysisService.analyzeFace(file);
+
+        if (mounted) {
+          CombinedStressService.instance.updateFace(
+            result.stressLevel,
+            emotion: result.emotion,
+          );
+          CombinedStressService.instance.latestFaceFile = file;
+
+          setState(() {
+            _result = result;
+            _latestFrame = file;
+          });
+        }
+      } catch (_) {
+        // Ignore errors during auto-capture to maintain smooth flow
+      } finally {
+        _isAnalyzing = false;
+      }
+    });
+  }
+
+  void _stopAutoCapture() {
+    _captureTimer?.cancel();
+    _cameraController?.dispose();
+    setState(() {
+      _isCameraReady = false;
+    });
   }
 
   Future<void> _saveResult() async {
@@ -75,15 +113,17 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
     setState(() => _isSaving = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
+      final combined = CombinedStressService.instance;
       await StressHistoryService.saveStressResult(
         combinedStress: _result!.stressLevel,
-        fatigueLevel: _result!.fatigueLevel,
+        fatigueLevel: 0,
         emotion: _result!.emotion,
       );
       if (mounted) {
         messenger.showSnackBar(
           const SnackBar(content: Text('Result saved ✅')),
         );
+        _stopAutoCapture(); // Stop after saving to finalize
       }
     } catch (e) {
       if (mounted) {
@@ -97,7 +137,16 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
   }
 
   void _tryAgain() {
-    _captureAndAnalyze();
+    _captureTimer?.cancel();
+    setState(() {
+      _result = null;
+      _latestFrame = null;
+    });
+    if (!_isCameraReady) {
+      _openCamera();
+    } else {
+      _startAutoCapture();
+    }
   }
 
   Color _stressColor(double level) {
@@ -147,7 +196,7 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
                       onPressed: () => Navigator.pop(context),
                     ),
                     Text(
-                      'Face Stress Analysis',
+                      'Live Face Analysis',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
@@ -162,129 +211,160 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
                 _errorSection(_errorMessage!),
 
               Expanded(
-                child: Center(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (_result == null && !_isAnalyzing) ...[
-                          const Icon(Icons.camera_front, size: 80, color: Colors.grey),
-                          const SizedBox(height: 24),
-                          Text(
-                            'One-time capture for analysis',
-                            style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.w500),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Position your face clearly for accuracy',
-                            style: TextStyle(color: subtextColor, fontSize: 14),
-                          ),
-                          const SizedBox(height: 32),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 60),
-                            child: _primaryButton(
-                              text: 'Open Camera',
-                              onTap: _captureAndAnalyze,
-                            ),
-                          ),
-                        ] else if (_isAnalyzing) ...[
-                          const CircularProgressIndicator(color: Color(0xFF7AD7C1)),
-                          const SizedBox(height: 24),
-                          Text(
-                            'Analyzing...',
-                            style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.w500),
-                          ),
-                        ] else if (_result != null) ...[
-                          _resultView(isDark, textColor, subtextColor),
-                          const SizedBox(height: 32),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: _secondaryButton(
-                                    'Analyze Again',
-                                    onTap: _isSaving ? null : _tryAgain,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _primaryButton(
-                                    text: _isSaving ? 'Saving…' : 'Save Result',
-                                    onTap: _isSaving ? null : _saveResult,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+                child: !_isCameraReady
+                    ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.camera_front, size: 60, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Position your face in the frame',
+                        style: TextStyle(color: subtextColor, fontSize: 16),
+                      ),
+                      const SizedBox(height: 24),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        child: _primaryButton(
+                          text: 'Open Camera',
+                          onTap: _openCamera,
+                        ),
+                      ),
+                    ],
                   ),
+                )
+                    : Column(
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              CameraPreview(_cameraController!),
+                              // Animated scan effect overlay (optional, looks cool)
+                              if (_isAnalyzing)
+                                Container(
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: const Color(0xFF7AD7C1).withOpacity(0.5),
+                                      width: 4,
+                                    ),
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_result != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E1E2C) : Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _stressColor(_result!.stressLevel).withOpacity(0.15),
+                                blurRadius: 15,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                            border: Border.all(
+                              color: _stressColor(_result!.stressLevel).withOpacity(0.3),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              Column(
+                                children: [
+                                  Text(
+                                    'Stress Level',
+                                    style: TextStyle(
+                                      color: subtextColor,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    '${_result!.stressLevel.toStringAsFixed(0)}%',
+                                    style: TextStyle(
+                                      color: _stressColor(_result!.stressLevel),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 28,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Container(
+                                width: 1.5,
+                                height: 40,
+                                color: isDark ? Colors.grey.withOpacity(0.2) : Colors.grey.withOpacity(0.3),
+                              ),
+                              Column(
+                                children: [
+                                  Text(
+                                    'Emotion',
+                                    style: TextStyle(
+                                      color: subtextColor,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    _result!.emotion.toUpperCase(),
+                                    style: TextStyle(
+                                      color: textColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 20,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
+
+              const SizedBox(height: 20),
+
+              if (_isCameraReady || (_latestFrame != null && !_isCameraReady))
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _secondaryButton(
+                          'Try Again',
+                          onTap: _tryAgain,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _primaryButton(
+                          text: _isSaving ? 'Saving…' : 'Save Result',
+                          onTap: _isSaving || _result == null ? null : _saveResult,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _resultView(bool isDark, Color textColor, Color subtextColor) {
-    return Column(
-      children: [
-        if (_latestFrame != null)
-          Container(
-            height: 200,
-            width: 200,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: _stressColor(_result!.stressLevel), width: 4),
-              image: DecorationImage(
-                image: FileImage(_latestFrame!),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-        const SizedBox(height: 24),
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E1E2C) : Colors.white,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: _stressColor(_result!.stressLevel).withValues(alpha: 0.15),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _metricItem('Stress', '${_result!.stressLevel.toStringAsFixed(0)}%', _stressColor(_result!.stressLevel), subtextColor),
-                  Container(width: 1, height: 40, color: Colors.grey.withValues(alpha: 0.2)),
-                  _metricItem('Fatigue', '${_result!.fatigueLevel.toStringAsFixed(0)}%', _stressColor(_result!.fatigueLevel), subtextColor),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _metricItem(String label, String value, Color color, Color subtextColor) {
-    return Column(
-      children: [
-        Text(label, style: TextStyle(color: subtextColor, fontSize: 14)),
-        const SizedBox(height: 8),
-        Text(value, style: TextStyle(color: color, fontSize: 32, fontWeight: FontWeight.bold)),
-      ],
     );
   }
 
@@ -319,21 +399,20 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 56,
+        height: 52,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           gradient: onTap == null
               ? const LinearGradient(colors: [Colors.grey, Colors.grey])
               : const LinearGradient(
-                  colors: [Color(0xFF9BE7C4), Color(0xFF7AD7C1)],
-                ),
+            colors: [Color(0xFF9BE7C4), Color(0xFF7AD7C1)],
+          ),
         ),
         child: Center(
           child: Text(
             text,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -347,18 +426,16 @@ class _FaceAnalysisScreenState extends State<FaceAnalysisScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 56,
+        height: 52,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: isDark ? const Color(0xFF2C2C3E) : Colors.grey.shade100,
-          border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(18),
+          color: isDark ? const Color(0xFF1E1E2C) : Colors.white,
         ),
         child: Center(
           child: Text(
             text,
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              fontSize: 16,
               color: isDark ? Colors.white : Colors.black87,
             ),
           ),
