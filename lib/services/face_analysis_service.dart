@@ -20,7 +20,7 @@ class FaceAnalysisResult {
 }
 
 class FaceAnalysisService {
-  static const String _baseUrl = 'http://192.168.0.111:5000';
+  static const String _baseUrl = 'http://192.168.1.20:5000';
 
   /// Sends an image [file] to the backend and returns a [FaceAnalysisResult].
   /// Throws a descriptive [Exception] on any failure.

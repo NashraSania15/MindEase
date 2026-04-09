@@ -19,7 +19,7 @@ class TextAnalysisResult {
 }
 
 class TextAnalysisService {
-  static const String _baseUrl = 'http://192.168.0.111:5000';
+  static const String _baseUrl = 'http://192.168.1.20:5000';
 
   /// Sends [text] to the backend and returns a [TextAnalysisResult].
   /// Throws a descriptive [Exception] on any failure.

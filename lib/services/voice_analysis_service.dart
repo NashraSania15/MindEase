@@ -20,7 +20,7 @@ class VoiceAnalysisResult {
 }
 
 class VoiceAnalysisService {
-  static const String _baseUrl = 'http://192.168.0.111:5000';
+  static const String _baseUrl = 'http://192.168.1.20:5000';
 
   /// Sends an audio [file] to the backend and returns a [VoiceAnalysisResult].
   /// Throws a descriptive [Exception] on any failure.

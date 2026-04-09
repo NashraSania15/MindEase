@@ -35,18 +35,20 @@ dependencies:
   cloud_firestore: ^5.5.0
   shared_preferences: ^2.5.3
 
+  flutter_tts: ^3.8.5
+  speech_to_text: ^7.3.0
+  http: ^1.1.0
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   intl: ^0.20.2
-  speech_to_text: ^7.3.0
   firebase_storage: ^12.4.10
   audioplayers: ^6.6.0
   record: ^6.2.0
   path_provider: ^2.1.5
   url_launcher: ^6.3.0
   permission_handler: ^11.3.1
-  http: ^1.2.2
   image_picker: ^1.1.2
   telephony: ^0.2.0
   camera: ^0.11.2+1
@@ -76,6 +78,34 @@ flutter:
     - assets/icons/phone.png
     - assets/icons/leaf.png
     - assets/icons/heart.png
+    - assets/icons/mental_card.png.jpeg
+    - assets/icons/sounds/birds.mp3
+    - assets/icons/sounds/calm_music.mp3
+    - assets/icons/sounds/flute.mp3
+    - assets/icons/sounds/forest.mp3
+    - assets/icons/sounds/guitar.mp3
+    - assets/icons/sounds/indigo_music.mp3
+    - assets/icons/sounds/ocean.mp3
+    - assets/icons/sounds/rain.mp3
+    - assets/icons/sounds/relaxing_music.mp3
+    - assets/icons/sounds/river.mp3
+    - assets/icons/sounds/sleep_music.mp3
+    - assets/icons/sounds/soft_piano.mp3
+    - assets/icons/sounds/thunder.mp3
+
+    - assets/icons/sound_icons/birds.jpeg
+    - assets/icons/sound_icons/calm_music.jpeg
+    - assets/icons/sound_icons/flute.jpeg
+    - assets/icons/sound_icons/forest.jpeg
+    - assets/icons/sound_icons/guitar.jpeg
+    - assets/icons/sound_icons/indigo.jpeg
+    - assets/icons/sound_icons/ocean.jpeg
+    - assets/icons/sound_icons/rain.jpeg
+    - assets/icons/sound_icons/relaxing_music.jpeg
+    - assets/icons/sound_icons/river.jpeg
+    - assets/icons/sound_icons/sleep_music.jpeg
+    - assets/icons/sound_icons/soft_piano.jpeg
+    - assets/icons/sound_icons/thunder.jpeg
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
